@@ -48,7 +48,7 @@
 	    "pin": {
 		"type": "heater",
 		"port": "8",
-		"pin": "13"
+		"pin": "15"
 	    }
         },
         {
