@@ -3,7 +3,7 @@ package brewgadgets
 import (
 	"log"
 	"time"
-	"bitbucket.com/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets"
 )
 
 /*

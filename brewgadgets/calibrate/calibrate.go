@@ -5,9 +5,9 @@ import (
 	"flag"
 	"io/ioutil"
 	"encoding/json"
-	"bitbucket.com/cswank/gogadgets"
-	"bitbucket.com/cswank/gogadgets/utils"
-	"bitbucket.com/cswank/brewery/brewgadgets"
+	"bitbucket.org/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets/utils"
+	"bitbucket.org/cswank/brewery/brewgadgets"
 )
 
 

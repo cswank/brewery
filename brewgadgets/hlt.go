@@ -2,7 +2,7 @@ package brewgadgets
 
 import (
 	"log"
-	"bitbucket.com/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets"
 )
 
 type HLT struct {

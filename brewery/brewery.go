@@ -2,9 +2,9 @@ package main
 
 
 import (
-	"bitbucket.com/cswank/gogadgets"
-	"bitbucket.com/cswank/gogadgets/utils"
-	"bitbucket.com/cswank/brewery/brewgadgets"
+	"bitbucket.org/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets/utils"
+	"bitbucket.org/cswank/brewery/brewgadgets"
 	"encoding/json"
 	"io/ioutil"
 	"flag"
@@ -77,6 +77,5 @@ func main() {
 		UID: "boiler volume",
 	}
 	a.AddGadget(boiler)
-	input := make(chan gogadgets.Message)
-	a.Start(input)
+	a.Start()
 }

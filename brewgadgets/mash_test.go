@@ -2,7 +2,7 @@ package brewgadgets
 
 import (
 	"testing"
-	"bitbucket.com/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets"
 )
 
 var (
