@@ -1,21 +1,19 @@
 package brewgadgets
 
 import (
-	"bitbucket.org/cswank/gogadgets/input"
-	"bitbucket.org/cswank/gogadgets/output"
-	"bitbucket.org/cswank/gogadgets/models"
+	"bitbucket.org/cswank/gogadgets"
 	"fmt"
 	"math"
 	"time"
 )
 
 type Mash struct {
-	input.InputDevice
+	gogadgets.InputDevice
 	Volume         float64
 	previousVolume float64
 	Units          string
 	HLTVolume      float64
-	out            chan<- models.Value
+	out            chan<- gogadgets.Value
 	k              float64
 	x              float64
 	tankArea       float64
@@ -31,7 +29,7 @@ type MashConfig struct {
 	Coefficient float64
 }
 
-func NewMash(config *MashConfig) (input.InputDevice, error) {
+func NewMash(config *MashConfig) (gogadgets.InputDevice, error) {
 	tankArea := math.Pi * math.Pow(config.TankRadius, 2)
 	valveArea := math.Pi * math.Pow(config.ValveRadius, 2)
 	g := 9.806 * 100.0 //centimeters
@@ -46,7 +44,7 @@ func NewMash(config *MashConfig) (input.InputDevice, error) {
 	}, nil
 }
 
-func (m *Mash) Start(in <-chan models.Message, out chan<- models.Value) {
+func (m *Mash) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
 	m.out = out
 	m.stop = make(chan bool)
 	for {
@@ -55,8 +53,8 @@ func (m *Mash) Start(in <-chan models.Message, out chan<- models.Value) {
 	}
 }
 
-func (m *Mash) GetValue() *models.Value {
-	return &models.Value{
+func (m *Mash) GetValue() *gogadgets.Value {
+	return &gogadgets.Value{
 		Value: m.Volume,
 		Units: m.Units,
 	}
@@ -64,13 +62,13 @@ func (m *Mash) GetValue() *models.Value {
 
 func (m *Mash) sendCurrentVolume(startVolume float64, duration time.Duration) {
 	m.Volume = m.previousVolume + m.GetVolume(startVolume, duration.Seconds())
-	m.out <- models.Value{
+	m.out <- gogadgets.Value{
 		Value: m.Volume,
 		Units: m.Units,
 	}
 }
 
-func (m *Mash) readMessage(msg models.Message) {
+func (m *Mash) readMessage(msg gogadgets.Message) {
 	if msg.Sender == "mash tun valve" {
 		if msg.Value.Value == true {
 			m.valveStatus = true
@@ -145,7 +143,7 @@ func (m *Mash) GetCoefficient(startVolume, volume, drainTime float64) float64 {
 	return ((At * m.x) / Av) * (math.Pow(hi, 0.5) - math.Pow(hf, 0.5)) / t
 }
 
-func getLiter(mash *Mash, gpio output.OutputDevice) float64 {
+func getLiter(mash *Mash, gpio gogadgets.OutputDevice) float64 {
 	fmt.Println("Push enter to start")
 	fmt.Scanf("x")
 	gpio.On(nil)
@@ -159,7 +157,7 @@ func getLiter(mash *Mash, gpio output.OutputDevice) float64 {
 	return mash.GetCoefficient(mash.HLTVolume, 1.0, duration.Seconds())
 }
 
-func Calibrate(mash *Mash, mashValve output.OutputDevice) {
+func Calibrate(mash *Mash, mashValve gogadgets.OutputDevice) {
 	coefficients := make([]float64, 5)
 	for i := 0; i < 5; i++ {
 		coefficients[i] = getLiter(mash, mashValve)
