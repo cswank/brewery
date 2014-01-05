@@ -12,7 +12,7 @@ type HLT struct {
 	GPIO gogadgets.Poller
 	volume float64
 	startVolume float64
-	Units string
+	units string
 	out chan<- gogadgets.Value
 }
 
@@ -24,8 +24,8 @@ func NewHLT(pin *gogadgets.Pin) (gogadgets.InputDevice, error) {
 	if err == nil {
 		h = &HLT{
 			GPIO:gpio.(gogadgets.Poller),
-			Value: pin.Value.(float64),
-			Units: pin.Units,
+			volume: pin.Value.(float64),
+			units: pin.Units,
 		}
 	}
 	return h, err
@@ -57,7 +57,7 @@ func (h *HLT) wait(out chan<- float64, err chan<- error) {
 		err<- e
 	} else {
 		if val {
-			out<- h.Value
+			out<- h.volume
 		} else {
 			out<- 0.0
 		}
@@ -74,7 +74,7 @@ func (h *HLT) readMessage(msg gogadgets.Message) (keepGoing bool) {
 		if h.startVolume == 0.0 {
 			h.startVolume = h.volume
 		}
-		h.volume = startVolume - msg.Value.Value.(float64)
+		h.volume = h.startVolume - msg.Value.Value.(float64)
 		h.sendValue()
 	}
 	return keepGoing
@@ -83,6 +83,6 @@ func (h *HLT) readMessage(msg gogadgets.Message) (keepGoing bool) {
 func (h *HLT) sendValue() {
 	h.out<- gogadgets.Value{
 		Value: h.volume,
-		Units: h.Units,
+		Units: h.units,
 	}
 }
