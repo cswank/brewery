@@ -50,7 +50,6 @@ func (m *Mash) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
 }
 
 func (m *Mash) monitor(stop <-chan bool) {
-	
 	startVolume := m.hltVolume
 	drainTime := time.Duration(m.getDrainTime(startVolume, m.targetVolume) * float64(time.Second))
 	startTime := time.Now()
@@ -67,13 +66,12 @@ func (m *Mash) monitor(stop <-chan bool) {
 
 func (m *Mash) sendCurrentVolume(startingVolume float64, startTime time.Time, drainTime time.Duration) time.Duration {
 	d := time.Since(startTime)
-	m.volume = startingVolume - m.getVolume(startingVolume, d.Seconds())
+	m.volume = m.getVolume(startingVolume, d.Seconds())newVolume
 	m.out<- gogadgets.Value{
 		Value: m.volume,
 		Units: m.Units,
 	}
 	remaining := drainTime - d
-	//fmt.Println(drainTime, remaining)
 	if remaining.Seconds() < 0.1 {
 		return remaining
 	}

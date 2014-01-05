@@ -10,7 +10,8 @@ import (
 type HLT struct {
 	gogadgets.InputDevice
 	GPIO gogadgets.Poller
-	Value float64
+	volume float64
+	startVolume float64
 	Units string
 	out chan<- gogadgets.Value
 }
@@ -39,10 +40,11 @@ func (h *HLT) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
 		go h.wait(value, err)
 		select {
 		case msg := <- in:
-			keepGoing = h.ReadMessage(msg)
+			keepGoing = h.readMessage(msg)
 		case val := <-value:
-			h.Value = val
-			h.SendValue()
+			h.startVolume = 0.0
+			h.volume = val
+			h.sendValue()
 		case e := <-err:
 			log.Println(e)
 		}
@@ -62,23 +64,25 @@ func (h *HLT) wait(out chan<- float64, err chan<- error) {
 	}
 }
 
-func (h *HLT) ReadMessage(msg gogadgets.Message) (keepGoing bool) {
+func (h *HLT) readMessage(msg gogadgets.Message) (keepGoing bool) {
 	keepGoing = true
 	if msg.Type == "command" && msg.Body == "shutdown" {
 		keepGoing = false
-	} else if msg.Type == "command" && msg.Body == "status" {
-		h.SendValue()		
-		
-	} else if msg.Type == "command" && msg.Body == "hlt volume change" {
-		h.Value += msg.Value.Value.(float64)
-		h.SendValue()
+	} else if msg.Type == "command" && msg.Body == "update" {
+		h.sendValue()
+	} else if msg.Type == "update" && msg.Body == "mash volume" {
+		if h.startVolume == 0.0 {
+			h.startVolume = h.volume
+		}
+		h.volume = startVolume - msg.Value.Value.(float64)
+		h.sendValue()
 	}
 	return keepGoing
 }
 
-func (h *HLT) SendValue() {
+func (h *HLT) sendValue() {
 	h.out<- gogadgets.Value{
-		Value: h.Value,
+		Value: h.volume,
 		Units: h.Units,
 	}
 }
