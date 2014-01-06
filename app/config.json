@@ -1,0 +1,120 @@
+{
+    "MasterHost": "localhost",
+    "SubPort": 6111,
+    "PubPort": 6112,
+    "Gadgets": [
+        {
+	    "Location": "bewery",
+	    "Name": "fan",
+	    "Pin": {
+		"Type": "gpio",
+		"Port": "8",
+		"Pin": "7",                
+	    }
+        },
+        {
+	    "Location": "hlt",
+	    "Name": "valve",
+            "OnCommand": "fill hlt",
+            "OffCommand": "stop filling hlt",
+	    "Pin": {
+		"Type": "gpio",
+		"Port": "8",
+		"Pin": "8",
+	    }
+        },
+        {
+	    "Location": "hlt",
+	    "Name": "temperature",
+	    "Pin": {
+		"Type": "thermometer",
+		"OneWireId": "28-000002b01241",
+		"Units": "C"
+	    }
+        },
+	{
+	    "Location": "hlt",
+	    "Name": "heater",
+            "OnCommand": "heat hlt",
+            "OffCommand": "stop heating hlt",
+	    "Pin": {
+		"Type": "heater",
+		"Port": "8",
+		"Pin": "15",
+	    }
+        },
+        {
+	    "Location": "mash",
+	    "Name": "valve",
+            "OnCommand": "fill mash",
+            "OffCommand": "stop filling mash",
+	    "Pin": {
+		"Type": "gpio",
+		"Port": "8",
+		"Pin": "10",
+	    }
+        },
+        {
+	    "Location": "mash",
+	    "Name": "temperature",
+	    "Pin": {
+		"Type": "thermometer",
+		"OneWireId": "28-0000025ed750",
+		"Units": "C"
+	    }
+        },
+        {
+	    "Location": "boiler",
+	    "Name": "valve",
+            "OnCommand": "fill boiler",
+            "OffCommand": "stop filling boiler",
+	    "Pin": {
+		"Type": "gpio",
+		"Port": "8",
+		"Pin": "11",
+	    }
+        },
+        {
+	    "Location": "boiler",
+	    "Name": "heater",
+            "OnCommand": "heat boiler",
+            "OffCommand": "stop heating boiler",
+	    "Pin": {
+		"Type": "heater",
+		"Port": "8",
+		"Pin": "16",
+	    }
+        },
+        {
+	    "Location": "boiler",
+	    "Name": "cooler",
+            "OnCommand": "cool boiler",
+            "OffCommand": "stop cooling boiler",
+	    "Pin": {
+		"Type": "cooler",
+		"Port": "8",
+		"Pin": "12",
+	    }
+        },
+	{
+	    "Location": "boiler",
+	    "Name": "temperature",
+	    "Pin": {
+		"Type": "thermometer",
+		"OneWireId": "28-0000025f0aba",
+		"Units": "C"
+	    }
+        },
+        {
+	    "Location": "carboy",
+	    "Name": "pump",
+            "OnCommand": "fill carboy",
+            "OffCommand": "stop filling carboy",
+	    "Pin": {
+		"Type": "gpio",
+		"Port": "8",
+		"Pin": "14",
+	    }
+        },
+    ]
+}

@@ -44,7 +44,7 @@ func TestStart(t *testing.T) {
 		Type: "update",
 		Sender: "hlt volume",
 		Value: gogadgets.Value{
-			Value: 5.0,
+			Value: 60.0,
 			Units: "L",
 		},
 	}
