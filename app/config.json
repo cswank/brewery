@@ -9,7 +9,7 @@
 	    "Pin": {
 		"Type": "gpio",
 		"Port": "8",
-		"Pin": "7",                
+		"Pin": "7"               
 	    }
         },
         {
@@ -20,7 +20,7 @@
 	    "Pin": {
 		"Type": "gpio",
 		"Port": "8",
-		"Pin": "8",
+		"Pin": "8"
 	    }
         },
         {
@@ -40,22 +40,22 @@
 	    "Pin": {
 		"Type": "heater",
 		"Port": "8",
-		"Pin": "15",
+		"Pin": "15"
 	    }
         },
         {
-	    "Location": "mash",
+	    "Location": "mash tun",
 	    "Name": "valve",
-            "OnCommand": "fill mash",
-            "OffCommand": "stop filling mash",
+            "OnCommand": "fill mash tun",
+            "OffCommand": "stop filling mash tun",
 	    "Pin": {
 		"Type": "gpio",
 		"Port": "8",
-		"Pin": "10",
+		"Pin": "10"
 	    }
         },
         {
-	    "Location": "mash",
+	    "Location": "mash tun",
 	    "Name": "temperature",
 	    "Pin": {
 		"Type": "thermometer",
@@ -71,7 +71,7 @@
 	    "Pin": {
 		"Type": "gpio",
 		"Port": "8",
-		"Pin": "11",
+		"Pin": "11"
 	    }
         },
         {
@@ -82,7 +82,7 @@
 	    "Pin": {
 		"Type": "heater",
 		"Port": "8",
-		"Pin": "16",
+		"Pin": "16"
 	    }
         },
         {
@@ -93,7 +93,7 @@
 	    "Pin": {
 		"Type": "cooler",
 		"Port": "8",
-		"Pin": "12",
+		"Pin": "12"
 	    }
         },
 	{
@@ -113,8 +113,8 @@
 	    "Pin": {
 		"Type": "gpio",
 		"Port": "8",
-		"Pin": "14",
+		"Pin": "14"
 	    }
-        },
+        }
     ]
 }

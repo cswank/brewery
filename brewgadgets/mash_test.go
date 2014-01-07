@@ -36,7 +36,7 @@ func TestGetDrainTime(t *testing.T) {
 func TestStart(t *testing.T) {
 	dev, _ := NewMash(config)
 	mash := dev.(*Mash)
-	mash.targetVolume = 0.5
+	//mash.targetVolume = 0.5
 	out := make(chan gogadgets.Message)
 	in := make(chan gogadgets.Value)
 	go mash.Start(out, in)
@@ -51,7 +51,7 @@ func TestStart(t *testing.T) {
 	out<- msg
 	msg = gogadgets.Message{
 		Type: "command",
-		Body: "fill mash tun",
+		Body: "fill mash tun to 0.55 liters",
 	}
 	out<- msg
 	msg = gogadgets.Message{
@@ -62,11 +62,10 @@ func TestStart(t *testing.T) {
 		},
 	}
 	out<- msg
-	
 	for {
 		val := <- in
 		fmt.Println(val)
-		if val.Value.(float64) >= 0.5 {
+		if val.Value.(float64) >= 0.55 {
 			msg = gogadgets.Message{
 				Type: "update",
 				Sender: "hlt valve",

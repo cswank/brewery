@@ -1,7 +1,6 @@
 package brewgadgets
 
 import (
-	"fmt"
 	"time"
 	"math"
 	"bitbucket.com/cswank/gogadgets"
@@ -9,9 +8,9 @@ import (
 
 type Mash struct {
 	gogadgets.InputDevice
-	volume float64
-	hltVolume float64
+	Volume float64
 	Units string
+	hltVolume float64
 	out chan<- gogadgets.Value
 	k float64
 	tankArea float64
@@ -44,8 +43,15 @@ func NewMash(config *MashConfig) (gogadgets.InputDevice, error) {
 func (m *Mash) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
 	m.out = out
 	for {
-		msg := <- in
+		msg := <-in
 		m.readMessage(msg)
+	}
+}
+
+func (m *Mash) GetValue() *gogadgets.Value {
+	return &gogadgets.Value{
+		Value: m.Volume,
+		Units: m.Units,
 	}
 }
 
@@ -66,9 +72,9 @@ func (m *Mash) monitor(stop <-chan bool) {
 
 func (m *Mash) sendCurrentVolume(startingVolume float64, startTime time.Time, drainTime time.Duration) time.Duration {
 	d := time.Since(startTime)
-	m.volume = m.getVolume(startingVolume, d.Seconds())
+	m.Volume = m.getVolume(startingVolume, d.Seconds())
 	m.out<- gogadgets.Value{
-		Value: m.volume,
+		Value: m.Volume,
 		Units: m.Units,
 	}
 	remaining := drainTime - d
@@ -80,21 +86,19 @@ func (m *Mash) sendCurrentVolume(startingVolume float64, startTime time.Time, dr
 
 func (m *Mash) readMessage(msg gogadgets.Message) {
 	stop := make(chan bool)
-	if msg.Type == "update" && msg.Sender == "hlt valve" {
+	if msg.Sender == "mash tun valve" {
 		if msg.Value.Value == true {
 			m.valveStatus = true
+			if msg.TargetValue != nil {
+				m.targetVolume = msg.TargetValue.Value.(float64)
+			}
 			go m.monitor(stop)
 		} else if msg.Value.Value == false && m.valveStatus{
 			m.valveStatus = false
 			stop<- true
 		}
-	} else if msg.Type == "update" && msg.Sender == "hlt volume" {
-		fmt.Println("setting hlt volume", msg)
+	} else if msg.Sender == "hlt volume" {
 		m.hltVolume = msg.Value.Value.(float64)
-	} else if msg.Type == "command" && msg.Body == "fill mash tun" {
-		fmt.Println("setting target volume")
-		//get the target volume, if present, so a message can be
-		//send when the target volume is achieved.
 	}
 }
 
@@ -117,13 +121,3 @@ func (m *Mash) getVolume(startingVolume, elapsedTime float64) float64 {
 func (m *Mash) getHeight(volume float64) float64 {
 	return volume / m.tankArea
 }
-
-
-
-
-
-
-
-
-    
-

@@ -26,8 +26,8 @@ func TestCreate(t *testing.T) {
 	poller := &FakePoller{}
 	_ = &HLT{
 		GPIO: poller,
-		volume: 5.0,
-		units: "liters",
+		Value: 5.0,
+		Units: "liters",
 	}
 }
 
@@ -35,8 +35,8 @@ func TestHLT(t *testing.T) {
 	poller := &FakePoller{}
 	h := &HLT{
 		GPIO: poller,
-		volume: 5.0,
-		units: "liters",
+		Value: 5.0,
+		Units: "liters",
 	}
 	out := make(chan gogadgets.Message)
 	in := make(chan gogadgets.Value)

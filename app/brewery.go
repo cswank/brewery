@@ -3,10 +3,15 @@ package main
 
 import (
 	"bitbucket.com/cswank/gogadgets"
-	"bitbucket.com/cswank/brewery/gadgets"
+	"bitbucket.com/cswank/gogadgets/utils"
+	"bitbucket.com/cswank/brewery/brewgadgets"
 	"encoding/json"
 	"io/ioutil"
 	"flag"
+)
+
+var (
+	configFlag = flag.String("c", "", "Path to the config json file")
 )
 
 func main() {
@@ -22,21 +27,44 @@ func main() {
 	err = json.Unmarshal(b, cfg)
 	a := gogadgets.NewApp(cfg)
 
-	config = &gadgets.MashConfig{
+	config := &brewgadgets.MashConfig{
 		TankRadius: 7.5 * 2.54,
 		ValveRadius: 0.1875 * 2.54,
 		Coefficient: 0.43244,
 	}
-	mash, _ := gadgets.NewMash(config)
+	mashVolume, _ := brewgadgets.NewMash(config)
+
+	mash := &gogadgets.Gadget{
+		Location: "mash tun",
+		Name: "volume",
+		Input: mashVolume,
+		Direction: "input",
+		OnCommand: "n/a",
+		OffCommand: "n/a",
+		UID: "mash volume",
+	}
+	
 	a.AddGadget(mash)
-	poller, err := NewGPIO(&Pin{Port:"8", Pin:"9", Direction:"in", Edge:"rising"})
+	poller, err := gogadgets.NewGPIO(&gogadgets.Pin{Port:"8", Pin:"9", Direction:"in", Edge:"rising"})
 	if err != nil {
 		panic(err)
 	}
-	hlt := &gadgets.HLT{
-		GPIO: poller,
-		volume: 26.5,
-		units: "liters",
+	hltVolume := &brewgadgets.HLT{
+		GPIO: poller.(gogadgets.Poller),
+		Value: 26.5,
+		Units: "liters",
+	}
+
+	hlt := &gogadgets.Gadget{
+		Location: "hlt",
+		Name: "volume",
+		Input: hltVolume,
+		Direction: "input",
+		OnCommand: "n/a",
+		OffCommand: "n/a",
+		UID: "hlt volume",
 	}
 	a.AddGadget(hlt)
+	stop := make(chan bool)
+	a.Start(stop)
 }
