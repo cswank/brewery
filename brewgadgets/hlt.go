@@ -35,8 +35,8 @@ func (h *HLT) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
 	h.out = out
 	value := make(chan float64)
 	err := make(chan error)
+	go h.wait(value, err)
 	for {
-		go h.wait(value, err)
 		select {
 		case msg := <- in:
 			h.readMessage(msg)
@@ -58,14 +58,16 @@ func (h *HLT) GetValue() *gogadgets.Value {
 }
 
 func (h *HLT) wait(out chan<- float64, err chan<- error) {
-	val, e := h.GPIO.Wait()
-	if e != nil {
-		err<- e
-	} else {
-		if val {
-			out<- h.Value
+	for {
+		val, e := h.GPIO.Wait()
+		if e != nil {
+			err<- e
 		} else {
-			out<- 0.0
+			if val {
+				out<- h.Value
+			} else {
+				out<- 0.0
+			}
 		}
 	}
 }
