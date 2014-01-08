@@ -15,8 +15,8 @@ type Mash struct {
 	k float64
 	tankArea float64
 	valveArea float64
-	targetVolume float64
 	valveStatus bool
+	endTime time.Time
 	stop chan bool
 }
 
@@ -55,31 +55,11 @@ func (m *Mash) GetValue() *gogadgets.Value {
 	}
 }
 
-func (m *Mash) monitor(stop <-chan bool) {
-	startVolume := m.hltVolume
-	drainTime := time.Duration(m.getDrainTime(startVolume, m.targetVolume) * float64(time.Second))
-	startTime := time.Now()
-	interval := time.Duration(100 * time.Millisecond)
-	for interval.Seconds() > 0.0 {
-		select {
-		case <-stop:
-			return
-		case <-time.After(interval):
-			interval = m.sendCurrentVolume(startVolume, startTime, drainTime)
-		}
-	}
-}
-
-func (m *Mash) sendCurrentVolume(startingVolume float64, startTime time.Time, drainTime time.Duration) time.Duration {
-	d := time.Since(startTime)
-	m.Volume = m.getVolume(startingVolume, d.Seconds())
+func (m *Mash) sendCurrentVolume(startVolume float64, duration time.Duration) time.Duration {
+	m.Volume = m.getVolume(startVolume, duration.Seconds())
 	m.out<- gogadgets.Value{
 		Value: m.Volume,
 		Units: m.Units,
-	}
-	remaining := drainTime - d
-	if remaining.Seconds() < 0.1 {
-		return remaining
 	}
 	return time.Duration(100 * time.Millisecond)
 }
@@ -89,9 +69,6 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 	if msg.Sender == "mash tun valve" {
 		if msg.Value.Value == true {
 			m.valveStatus = true
-			if msg.TargetValue != nil {
-				m.targetVolume = msg.TargetValue.Value.(float64)
-			}
 			go m.monitor(stop)
 		} else if msg.Value.Value == false && m.valveStatus{
 			m.valveStatus = false
@@ -102,18 +79,26 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 	}
 }
 
-func (m *Mash) getDrainTime(startingVolume, volume float64) float64 {
-	volume = 1000 * volume //convert to cubic centimeters
-	startingVolume = startingVolume * 1000.0
-	heightDiff := m.getHeight(volume)
-	height := m.getHeight(startingVolume)
-	h2 := height - heightDiff
-	return (math.Pow(height, 0.5) - math.Pow(h2, 0.5)) * m.k
+func (m *Mash) monitor(stop <-chan bool) {
+	startTime := time.Now()
+	interval := time.Duration(100 * time.Millisecond)
+	startVolume := m.hltVolume * 1000.0
+	var d time.Duration
+	for interval.Seconds() > 0.0 {
+		select {
+		case <-stop:
+			return
+		case <-time.After(interval):
+			if m.valveStatus {
+				d = time.Since(startTime)
+				interval = m.sendCurrentVolume(startVolume, d)
+			}
+		}
+	}
 }
 
-func (m *Mash) getVolume(startingVolume, elapsedTime float64) float64 {
-	startingVolume = startingVolume * 1000.0 //convert to cubic centimeters
-	height := m.getHeight(startingVolume)
+func (m *Mash) getVolume(startVolume, elapsedTime float64) float64 {	
+	height := m.getHeight(startVolume)
 	dh := math.Abs(math.Pow((elapsedTime / m.k), 2) - (2 * (elapsedTime / m.k) * math.Pow(height, 0.5)))
 	return (m.tankArea * dh) / 1000.0
 }

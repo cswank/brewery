@@ -17,64 +17,63 @@ var (
 func TestGetVolume(t *testing.T) {
 	dev, _ := NewMash(config)
 	mash := dev.(*Mash)
-	volume := mash.getVolume(5.0, 13.0)
+	volume := mash.getVolume(5000.0, 13.0)
 	if volume != 0.36460455256750146 {
 		t.Error("incorrect volume", volume)
 	}
 }
 
-func TestGetDrainTime(t *testing.T) {
-	dev, _ := NewMash(config)
-	mash := dev.(*Mash)
-	drainTime := mash.getDrainTime(5.0, 4.0)
-	if drainTime != 193.4352488013887 {
-		t.Error("incorrect volume", drainTime)
-	}
-}
-
-
-func TestStart(t *testing.T) {
-	dev, _ := NewMash(config)
-	mash := dev.(*Mash)
-	//mash.targetVolume = 0.5
-	out := make(chan gogadgets.Message)
+func TestSystem(t *testing.T) {
+	hltOut := make(chan gogadgets.Message)
+	mashOut := make(chan gogadgets.Message)
 	in := make(chan gogadgets.Value)
-	go mash.Start(out, in)
+
+	poller := &FakePoller{}
+	hlt := &HLT{
+		GPIO: poller,
+		Value: 25.0,
+		Units: "liters",
+	}
+	
+	dev, _ := NewMash(config)
+	mash := dev.(*Mash)
+
+	go hlt.Start(hltOut, in)
+	go mash.Start(mashOut, in)
+
+	val := <-in
+	fmt.Println(val)
 	msg := gogadgets.Message{
-		Type: "update",
 		Sender: "hlt volume",
-		Value: gogadgets.Value{
-			Value: 60.0,
-			Units: "L",
-		},
+		Value: val,
 	}
-	out<- msg
-	msg = gogadgets.Message{
-		Type: "command",
-		Body: "fill mash tun to 0.55 liters",
-	}
-	out<- msg
+	mashOut<- msg
+	
 	msg = gogadgets.Message{
 		Type: "update",
-		Sender: "hlt valve",
+		Sender: "mash tun valve",
 		Value: gogadgets.Value{
 		Value: true,
 		},
 	}
-	out<- msg
-	for {
-		val := <- in
-		fmt.Println(val)
-		if val.Value.(float64) >= 0.55 {
-			msg = gogadgets.Message{
-				Type: "update",
-				Sender: "hlt valve",
-				Value: gogadgets.Value{
-					Value: false,
-				},
-			}
-			out<- msg
-			break
-		}
-	}
+	
+	mashOut<- msg
+	
+	// for {
+	// 	val := <- in
+	// 	fmt.Println(val)
+	// 	if val.Value.(float64) >= 0.55 {
+	// 		msg = gogadgets.Message{
+	// 			Type: "update",
+	// 			Sender: "hlt valve",
+	// 			Value: gogadgets.Value{
+	// 				Value: false,
+	// 			},
+	// 		}
+	// 		out<- msg
+	// 		break
+	// 	}
+	// }
+	// val := <-in
+	// fmt.Println(val)
 }
