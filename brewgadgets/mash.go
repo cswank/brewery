@@ -1,6 +1,7 @@
 package brewgadgets
 
 import (
+	"fmt"
 	"time"
 	"math"
 	"bitbucket.com/cswank/gogadgets"
@@ -9,6 +10,7 @@ import (
 type Mash struct {
 	gogadgets.InputDevice
 	Volume float64
+	previousVolume float64 
 	Units string
 	hltVolume float64
 	out chan<- gogadgets.Value
@@ -42,6 +44,7 @@ func NewMash(config *MashConfig) (gogadgets.InputDevice, error) {
 
 func (m *Mash) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
 	m.out = out
+	m.stop = make(chan bool)
 	for {
 		msg := <-in
 		m.readMessage(msg)
@@ -55,24 +58,23 @@ func (m *Mash) GetValue() *gogadgets.Value {
 	}
 }
 
-func (m *Mash) sendCurrentVolume(startVolume float64, duration time.Duration) time.Duration {
-	m.Volume = m.getVolume(startVolume, duration.Seconds())
+func (m *Mash) sendCurrentVolume(startVolume float64, duration time.Duration) {
+	m.Volume = m.previousVolume + m.getVolume(startVolume, duration.Seconds())
 	m.out<- gogadgets.Value{
 		Value: m.Volume,
 		Units: m.Units,
 	}
-	return time.Duration(100 * time.Millisecond)
 }
 
 func (m *Mash) readMessage(msg gogadgets.Message) {
-	stop := make(chan bool)
 	if msg.Sender == "mash tun valve" {
 		if msg.Value.Value == true {
 			m.valveStatus = true
-			go m.monitor(stop)
+			go m.monitor(m.stop)
 		} else if msg.Value.Value == false && m.valveStatus{
 			m.valveStatus = false
-			stop<- true
+			m.previousVolume = m.Volume
+			m. stop<- true
 		}
 	} else if msg.Sender == "hlt volume" {
 		m.hltVolume = msg.Value.Value.(float64)
@@ -84,17 +86,21 @@ func (m *Mash) monitor(stop <-chan bool) {
 	interval := time.Duration(100 * time.Millisecond)
 	startVolume := m.hltVolume * 1000.0
 	var d time.Duration
-	for interval.Seconds() > 0.0 {
+	for  {
 		select {
-		case <-stop:
-			return
+		case s := <-stop:
+			fmt.Println(s)
+			break
 		case <-time.After(interval):
 			if m.valveStatus {
 				d = time.Since(startTime)
-				interval = m.sendCurrentVolume(startVolume, d)
+				m.sendCurrentVolume(startVolume, d)
+			} else {
+				interval = time.Duration(100 * time.Second)
 			}
 		}
 	}
+	fmt.Println("monitor exit")
 }
 
 func (m *Mash) getVolume(startVolume, elapsedTime float64) float64 {	
