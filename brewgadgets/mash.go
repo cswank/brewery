@@ -12,9 +12,10 @@ type Mash struct {
 	Volume float64
 	previousVolume float64 
 	Units string
-	hltVolume float64
+	HLTVolume float64
 	out chan<- gogadgets.Value
 	k float64
+	x float64
 	tankArea float64
 	valveArea float64
 	valveStatus bool
@@ -37,6 +38,7 @@ func NewMash(config *MashConfig) (gogadgets.InputDevice, error) {
 	return &Mash{
 		Units: "L",
 		k: k,
+		x: x,
 		tankArea: tankArea,
 		valveArea: valveArea,
 	}, nil
@@ -59,7 +61,7 @@ func (m *Mash) GetValue() *gogadgets.Value {
 }
 
 func (m *Mash) sendCurrentVolume(startVolume float64, duration time.Duration) {
-	m.Volume = m.previousVolume + m.getVolume(startVolume, duration.Seconds())
+	m.Volume = m.previousVolume + m.GetVolume(startVolume, duration.Seconds())
 	m.out<- gogadgets.Value{
 		Value: m.Volume,
 		Units: m.Units,
@@ -77,14 +79,14 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 			m. stop<- true
 		}
 	} else if msg.Sender == "hlt volume" {
-		m.hltVolume = msg.Value.Value.(float64)
+		m.HLTVolume = msg.Value.Value.(float64)
 	}
 }
 
 func (m *Mash) monitor(stop <-chan bool) {
 	startTime := time.Now()
 	interval := time.Duration(100 * time.Millisecond)
-	startVolume := m.hltVolume * 1000.0
+	startVolume := m.HLTVolume * 1000.0
 	var d time.Duration
 	for  {
 		select {
@@ -103,12 +105,55 @@ func (m *Mash) monitor(stop <-chan bool) {
 	fmt.Println("monitor exit")
 }
 
-func (m *Mash) getVolume(startVolume, elapsedTime float64) float64 {	
+func (m *Mash) GetVolume(startVolume, elapsedTime float64) float64 {
 	height := m.getHeight(startVolume)
 	dh := math.Abs(math.Pow((elapsedTime / m.k), 2) - (2 * (elapsedTime / m.k) * math.Pow(height, 0.5)))
 	return (m.tankArea * dh) / 1000.0
 }
 
+func (m *Mash) GetDrainTime(startVolume, volume float64) float64 {
+	volume = 1000 * volume //convert to cubic centimeters
+	startVolume = startVolume * 1000.0
+	heightDiff := m.getHeight(volume)
+	height := m.getHeight(startVolume)
+	h2 := height - heightDiff
+	return (math.Pow(height, 0.5) - math.Pow(h2, 0.5)) * m.k
+}
+
 func (m *Mash) getHeight(volume float64) float64 {
 	return volume / m.tankArea
 }
+
+func (m *Mash) GetCoefficient(startVolume, volume, drainTime float64) float64 {
+	hi := m.getHeight(startVolume * 1000.0)
+	dh := m.getHeight(volume * 1000.0)
+	hf := hi - dh
+	At := m.tankArea
+	Av := m.valveArea
+	t := drainTime
+	return ((At * m.x) / Av) * (math.Pow(hi, 0.5) - math.Pow(hf, 0.5)) / t
+}
+
+func getLiter(mash *Mash, gpio gogadgets.OutputDevice) float64 {
+	fmt.Scanf("Push enter to start")
+	gpio.On(nil)
+	start := time.Now()
+	fmt.Scanf("Push enter when 1 liters has dispensed")
+	gpio.Off()
+	end := time.Now()
+	duration := end.Sub(start)
+	mash.HLTVolume -= 1.0
+	return mash.GetCoefficient(mash.HLTVolume, 1.0, duration.Seconds())
+}
+	
+func Calibrate(mash *Mash, mashValve gogadgets.OutputDevice) {
+	coefficients := make([]float64, 5)
+	for i := 0; i < 5; i++ {
+		coefficients[i] = getLiter(mash, mashValve)
+		fmt.Println(coefficients[i])
+	}
+	fmt.Println(coefficients)
+}
+	
+	
+	

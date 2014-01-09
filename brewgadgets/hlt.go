@@ -1,8 +1,8 @@
 package brewgadgets
 
 import (
-	"bitbucket.com/cswank/gogadgets"
 	"log"
+	"bitbucket.com/cswank/gogadgets"
 )
 
 
@@ -88,3 +88,5 @@ func (h *HLT) sendValue() {
 		Units: h.Units,
 	}
 }
+
+
