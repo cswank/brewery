@@ -135,10 +135,12 @@ func (m *Mash) GetCoefficient(startVolume, volume, drainTime float64) float64 {
 }
 
 func getLiter(mash *Mash, gpio gogadgets.OutputDevice) float64 {
-	fmt.Scanf("Push enter to start")
+	fmt.Println("Push enter to start")
+	fmt.Scanf("x")
 	gpio.On(nil)
 	start := time.Now()
-	fmt.Scanf("Push enter when 1 liters has dispensed")
+	fmt.Println("Push enter when 1 liters has dispensed")
+	fmt.Scanf("x")
 	gpio.Off()
 	end := time.Now()
 	duration := end.Sub(start)
