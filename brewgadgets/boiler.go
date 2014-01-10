@@ -32,8 +32,7 @@ type Boiler struct {
 func NewBoiler() (gogadgets.InputDevice, error) {
 	return &Boiler{
 		Units: "L",
-		waitTime: time.Duration(5 * time.Second),
-		//waitTime: time.Duration(60 * 5 * time.Second),
+		waitTime: time.Duration(60 * 5 * time.Second),
 	}, nil
 }
 
