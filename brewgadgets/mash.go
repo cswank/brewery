@@ -91,7 +91,6 @@ func (m *Mash) monitor(stop <-chan bool) {
 	startTime := time.Now()
 	interval := time.Duration(100 * time.Millisecond)
 	startVolume := m.HLTVolume * 1000.0
-	fmt.Println(startVolume)
 	var d time.Duration
 	keepGoing := true
 	for keepGoing {
@@ -113,6 +112,9 @@ func (m *Mash) monitor(stop <-chan bool) {
 func (m *Mash) GetVolume(startVolume, elapsedTime float64) float64 {
 	height := m.getHeight(startVolume)
 	dh := math.Abs(math.Pow((elapsedTime / m.k), 2) - (2 * (elapsedTime / m.k) * math.Pow(height, 0.5)))
+	if math.IsNaN(dh) {
+		dh = 0.0
+	}
 	return (m.tankArea * dh) / 1000.0
 }
 
