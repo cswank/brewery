@@ -41,7 +41,7 @@ func main() {
 		Direction: "input",
 		OnCommand: "n/a",
 		OffCommand: "n/a",
-		UID: "mash volume",
+		UID: "mash tun volume",
 	}
 	
 	a.AddGadget(mash)
@@ -49,12 +49,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	
 	hltVolume := &brewgadgets.HLT{
 		GPIO: poller.(gogadgets.Poller),
 		Value: 26.5,
 		Units: "liters",
 	}
-
 	hlt := &gogadgets.Gadget{
 		Location: "hlt",
 		Name: "volume",
@@ -65,6 +65,18 @@ func main() {
 		UID: "hlt volume",
 	}
 	a.AddGadget(hlt)
+
+	boilerVolume := brewgadgets.NewBoiler()
+	hlt := &gogadgets.Gadget{
+		Location: "boiler",
+		Name: "volume",
+		Input: boilerVolume,
+		Direction: "input",
+		OnCommand: "n/a",
+		OffCommand: "n/a",
+		UID: "boiler volume",
+	}
+	a.AddGadget(boiler)
 	stop := make(chan bool)
 	a.Start(stop)
 }

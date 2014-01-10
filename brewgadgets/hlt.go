@@ -5,7 +5,6 @@ import (
 	"bitbucket.com/cswank/gogadgets"
 )
 
-
 type HLT struct {
 	gogadgets.InputDevice
 	GPIO gogadgets.Poller
@@ -73,7 +72,7 @@ func (h *HLT) wait(out chan<- float64, err chan<- error) {
 }
 
 func (h *HLT) readMessage(msg gogadgets.Message) {
-	if msg.Sender == "mash volume" {
+	if msg.Sender == "mash tun volume" && msg.Value.Value.(float64) > 0.0 {
 		if h.startVolume == 0.0 {
 			h.startVolume = h.Volume
 		}

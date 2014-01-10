@@ -1,7 +1,6 @@
 package brewgadgets
 
 import (
-	"fmt"
 	"testing"
 	"time"
 	"bitbucket.com/cswank/gogadgets"
@@ -47,7 +46,6 @@ func TestHLT(t *testing.T) {
 	}
 	go func() {
 		time.Sleep(10 * time.Millisecond)
-		fmt.Println("sending msg")
 		out<- gogadgets.Message{
 			Type: "update",
 			Sender: "mash tun volume",

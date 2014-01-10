@@ -17,7 +17,7 @@ var (
 func TestGetVolume(t *testing.T) {
 	dev, _ := NewMash(config)
 	mash := dev.(*Mash)
-	volume := mash.getVolume(5000.0, 13.0)
+	volume := mash.GetVolume(5000.0, 13.0)
 	if volume != 0.36460455256750146 {
 		t.Error("incorrect volume", volume)
 	}

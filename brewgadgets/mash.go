@@ -80,6 +80,10 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 		}
 	} else if msg.Sender == "hlt volume" {
 		m.HLTVolume = msg.Value.Value.(float64)
+	} else if msg.Sender == "boiler volume" {
+		m.previousVolume = 0.0
+		m.Volume = 0.0
+		m.out<- *m.GetValue()
 	}
 }
 
