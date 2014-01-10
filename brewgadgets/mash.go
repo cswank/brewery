@@ -87,22 +87,23 @@ func (m *Mash) monitor(stop <-chan bool) {
 	startTime := time.Now()
 	interval := time.Duration(100 * time.Millisecond)
 	startVolume := m.HLTVolume * 1000.0
+	fmt.Println(startVolume)
 	var d time.Duration
-	for  {
+	keepGoing := true
+	for keepGoing {
 		select {
-		case s := <-stop:
-			fmt.Println(s)
-			break
+		case <-stop:
+			keepGoing = false
 		case <-time.After(interval):
 			if m.valveStatus {
 				d = time.Since(startTime)
 				m.sendCurrentVolume(startVolume, d)
 			} else {
-				interval = time.Duration(100 * time.Second)
+				
 			}
 		}
 	}
-	fmt.Println("monitor exit")
+	fmt.Println("exit monitor")
 }
 
 func (m *Mash) GetVolume(startVolume, elapsedTime float64) float64 {
