@@ -32,7 +32,8 @@ type Boiler struct {
 func NewBoiler() (gogadgets.InputDevice, error) {
 	return &Boiler{
 		Units: "L",
-		waitTime: time.Duration(60 * 5 * time.Second),
+		waitTime: time.Duration(5 * time.Second),
+		//waitTime: time.Duration(60 * 5 * time.Second),
 	}, nil
 }
 
@@ -62,7 +63,7 @@ func (b *Boiler) GetValue() *gogadgets.Value {
 
 func (b *Boiler) wait(out chan<- float64) {
 	time.Sleep(b.waitTime)
-	out<- b.mashVolume
+	out<- b.mashVolume + b.Volume
 }
 
 func (b *Boiler) readMessage(msg gogadgets.Message) {

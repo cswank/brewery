@@ -66,8 +66,8 @@ func main() {
 	}
 	a.AddGadget(hlt)
 
-	boilerVolume := brewgadgets.NewBoiler()
-	hlt := &gogadgets.Gadget{
+	boilerVolume, _ := brewgadgets.NewBoiler()
+	boiler := &gogadgets.Gadget{
 		Location: "boiler",
 		Name: "volume",
 		Input: boilerVolume,
