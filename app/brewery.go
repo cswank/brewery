@@ -30,7 +30,7 @@ func main() {
 	config := &brewgadgets.MashConfig{
 		TankRadius: 7.5 * 2.54,
 		ValveRadius: 0.1875 * 2.54,
-		Coefficient: 0.43244,
+		 Coefficient: 0.4,
 	}
 	mashVolume, _ := brewgadgets.NewMash(config)
 

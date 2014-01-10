@@ -87,22 +87,23 @@ func (m *Mash) monitor(stop <-chan bool) {
 	startTime := time.Now()
 	interval := time.Duration(100 * time.Millisecond)
 	startVolume := m.HLTVolume * 1000.0
+	fmt.Println(startVolume)
 	var d time.Duration
-	for  {
+	keepGoing := true
+	for keepGoing {
 		select {
-		case s := <-stop:
-			fmt.Println(s)
-			break
+		case <-stop:
+			keepGoing = false
 		case <-time.After(interval):
 			if m.valveStatus {
 				d = time.Since(startTime)
 				m.sendCurrentVolume(startVolume, d)
 			} else {
-				interval = time.Duration(100 * time.Second)
+				
 			}
 		}
 	}
-	fmt.Println("monitor exit")
+	fmt.Println("exit monitor")
 }
 
 func (m *Mash) GetVolume(startVolume, elapsedTime float64) float64 {
@@ -135,10 +136,12 @@ func (m *Mash) GetCoefficient(startVolume, volume, drainTime float64) float64 {
 }
 
 func getLiter(mash *Mash, gpio gogadgets.OutputDevice) float64 {
-	fmt.Scanf("Push enter to start")
+	fmt.Println("Push enter to start")
+	fmt.Scanf("x")
 	gpio.On(nil)
 	start := time.Now()
-	fmt.Scanf("Push enter when 1 liters has dispensed")
+	fmt.Println("Push enter when 1 liters has dispensed")
+	fmt.Scanf("x")
 	gpio.Off()
 	end := time.Now()
 	duration := end.Sub(start)
