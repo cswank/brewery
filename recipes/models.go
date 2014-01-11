@@ -55,7 +55,8 @@ type Mash struct {
 }
 
 func NewRecipe(name string) (r *Recipe, err error) {
-	res, err := http.Get(fmt.Sprintf("http://www.brewtoad.com/recipes/%s.json", name))
+	recipeUrl := fmt.Sprintf("http://www.brewtoad.com/recipes/%s.json", name)
+	res, err := http.Get(recipeUrl)
 	if err != nil {
 		return r, err
 	}
@@ -72,7 +73,6 @@ func NewRecipe(name string) (r *Recipe, err error) {
 	r.WaterRatio = 1.25
 	return r, err
 }
-
 
 func (r *Recipe) getMash(grainTemperature float64) *Mash {
 	grainWeight := r.getGrainWeight()

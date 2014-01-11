@@ -55,6 +55,7 @@ func TestMethod(t *testing.T) {
 	if len(m) != 37 {
 		t.Error(len(m))
 	}
+	
 }
 
 func TestMash(t *testing.T) {
@@ -89,7 +90,7 @@ func TestNewRecipe(t *testing.T) {
 	if m[24] != "fill boiler to 8.437494 gallons" {
 		t.Error(m[24])
 	}
-	// for _, s := range r.GetMethod(75.0) {
-	// 	fmt.Println(s)
-	// }
+	for _, s := range r.GetMethod(75.0) {
+		fmt.Println(s)
+	}
 }
