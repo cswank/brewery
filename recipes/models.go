@@ -2,6 +2,9 @@ package recipes
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"encoding/json"
 )
 
 type Fermentable struct {
@@ -50,6 +53,26 @@ type Mash struct {
 	SpargeVolume float64
 	SecondSpargeVolume float64
 }
+
+func NewRecipe(name string) (r *Recipe, err error) {
+	res, err := http.Get(fmt.Sprintf("http://www.brewtoad.com/recipes/%s.json", name))
+	if err != nil {
+		return r, err
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		return r, err
+	}
+	r = &Recipe{}
+	err = json.Unmarshal(body, r)
+	if err != nil {
+		return r, err
+	}
+	r.WaterRatio = 1.25
+	return r, err
+}
+
 
 func (r *Recipe) getMash(grainTemperature float64) *Mash {
 	grainWeight := r.getGrainWeight()
@@ -115,8 +138,8 @@ func (r *Recipe) getSpargeVolume(mashVolume, grainWeight float64) float64 {
 	return volume + mashVolume
 }
 
-func (r *Recipe) GetMethod() []string {
-	mash := r.getMash(25.0)
+func (r *Recipe) GetMethod(grainTemperature float64) []string {
+	mash := r.getMash(grainTemperature)
 	temperatureUnits := "F"
 	volumeUnits := "gallons"
 	return []string {

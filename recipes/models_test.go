@@ -51,9 +51,9 @@ func TestMethod(t *testing.T) {
 		t.Fatal(err)
 	}
 	recipe.WaterRatio = 1.25
-	m := recipe.GetMethod()
-	for _, s := range m {
-		fmt.Println(s)
+	m := recipe.GetMethod(75.0)
+	if len(m) != 37 {
+		t.Error(len(m))
 	}
 }
 
@@ -65,12 +65,31 @@ func TestMash(t *testing.T) {
 		t.Fatal(err)
 	}
 	recipe.WaterRatio = 1.25
-	m := recipe.getMash(25.0)
-	if m.StrikeTemperature != 186.75 {
+	m := recipe.getMash(75.0)
+	if m.StrikeTemperature != 174.25 {
 		t.Error(m.StrikeTemperature)
 	}
 
 	if recipe.getGrainWeight() != 16.999979782739803 {
 		t.Error(recipe.getGrainWeight())
 	}
+}
+
+
+func TestNewRecipe(t *testing.T) {
+	r, err := NewRecipe("vladimirs-own-stout")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := r.GetMethod(75.0)
+	if m[1] != "heat hlt to 174.250000 F" {
+		fmt.Println(m)
+		t.Error(m[1])
+	}
+	if m[24] != "fill boiler to 8.437494 gallons" {
+		t.Error(m[24])
+	}
+	// for _, s := range r.GetMethod(75.0) {
+	// 	fmt.Println(s)
+	// }
 }
