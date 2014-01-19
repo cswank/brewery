@@ -4,7 +4,7 @@
     "PubPort": 6112,
     "Gadgets": [
         {
-	    "Location": "bewery",
+	    "Location": "brewery",
 	    "Name": "fan",
 	    "Pin": {
 		"Type": "gpio",
