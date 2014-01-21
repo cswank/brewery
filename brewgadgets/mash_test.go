@@ -1,7 +1,6 @@
 package brewgadgets
 
 import (
-	"fmt"
 	"testing"
 	"bitbucket.com/cswank/gogadgets"
 )
@@ -42,7 +41,6 @@ func TestSystem(t *testing.T) {
 	go mash.Start(mashOut, in)
 
 	val := <-in
-	fmt.Println(val)
 	msg := gogadgets.Message{
 		Sender: "hlt volume",
 		Value: val,

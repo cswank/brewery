@@ -76,7 +76,7 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 		} else if msg.Value.Value == false && m.valveStatus{
 			m.valveStatus = false
 			m.previousVolume = m.Volume
-			m. stop<- true
+			m.stop<- true
 		}
 	} else if msg.Sender == "hlt volume" {
 		m.HLTVolume = msg.Value.Value.(float64)
@@ -97,6 +97,8 @@ func (m *Mash) monitor(stop <-chan bool) {
 		select {
 		case <-stop:
 			keepGoing = false
+			d = time.Since(startTime)
+			m.sendCurrentVolume(startVolume, d)
 		case <-time.After(interval):
 			if m.valveStatus {
 				d = time.Since(startTime)

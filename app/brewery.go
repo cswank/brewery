@@ -77,6 +77,6 @@ func main() {
 		UID: "boiler volume",
 	}
 	a.AddGadget(boiler)
-	stop := make(chan bool)
-	a.Start(stop)
+	input := make(chan gogadgets.Message)
+	a.Start(input)
 }

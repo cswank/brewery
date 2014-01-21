@@ -62,7 +62,8 @@ func (b *Boiler) GetValue() *gogadgets.Value {
 
 func (b *Boiler) wait(out chan<- float64) {
 	time.Sleep(b.waitTime)
-	out<- b.mashVolume + b.Volume
+	totalVolume := b.mashVolume + b.Volume
+	out<- totalVolume
 }
 
 func (b *Boiler) readMessage(msg gogadgets.Message) {
