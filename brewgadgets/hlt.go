@@ -40,8 +40,8 @@ func (h *HLT) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
 		case msg := <- in:
 			h.readMessage(msg)
 		case val := <-value:
-			h.startVolume = 0.0
 			h.Volume = val
+			h.startVolume = val
 			h.sendValue()
 		case e := <-err:
 			log.Println(e)
@@ -73,11 +73,10 @@ func (h *HLT) wait(out chan<- float64, err chan<- error) {
 
 func (h *HLT) readMessage(msg gogadgets.Message) {
 	if msg.Sender == "mash tun volume" && msg.Value.Value.(float64) > 0.0 {
-		if h.startVolume == 0.0 {
-			h.startVolume = h.Volume
-		}
 		h.Volume = h.startVolume - msg.Value.Value.(float64)
 		h.sendValue()
+	} else if msg.Sender == "mash tun volume" && msg.Value.Value.(float64) == 0.0 {
+		h.startVolume = h.Volume
 	}
 }
 
