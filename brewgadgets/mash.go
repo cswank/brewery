@@ -72,15 +72,15 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 	if msg.Sender == "mash tun valve" {
 		if msg.Value.Value == true {
 			m.valveStatus = true
-			go m.monitor(m.stop)
-		} else if msg.Value.Value == false && m.valveStatus{
-			m.valveStatus = false
 			m.previousVolume = m.Volume
+			go m.monitor(m.stop)
+		} else if msg.Value.Value == false && m.valveStatus {
 			m.stop<- true
+			m.valveStatus = false
 		}
 	} else if msg.Sender == "hlt volume" {
 		m.HLTVolume = msg.Value.Value.(float64)
-	} else if msg.Sender == "boiler volume" {
+	} else if msg.Sender == "boiler volume" && msg.Value.Value.(float64) > 0.0 {
 		m.previousVolume = 0.0
 		m.Volume = 0.0
 		m.out<- *m.GetValue()
