@@ -1,13 +1,12 @@
 package main
 
-
 import (
+	"bitbucket.org/cswank/brewery/brewgadgets"
 	"bitbucket.org/cswank/gogadgets"
 	"bitbucket.org/cswank/gogadgets/utils"
-	"bitbucket.org/cswank/brewery/brewgadgets"
 	"encoding/json"
-	"io/ioutil"
 	"flag"
+	"io/ioutil"
 )
 
 var (
@@ -28,53 +27,53 @@ func main() {
 	a := gogadgets.NewApp(cfg)
 
 	config := &brewgadgets.MashConfig{
-		TankRadius: 7.5 * 2.54,
+		TankRadius:  7.5 * 2.54,
 		ValveRadius: 0.1875 * 2.54,
-		 Coefficient: 0.4,
+		Coefficient: 0.4,
 	}
 	mashVolume, _ := brewgadgets.NewMash(config)
 
 	mash := &gogadgets.Gadget{
-		Location: "mash tun",
-		Name: "volume",
-		Input: mashVolume,
-		Direction: "input",
-		OnCommand: "n/a",
+		Location:   "mash tun",
+		Name:       "volume",
+		Input:      mashVolume,
+		Direction:  "input",
+		OnCommand:  "n/a",
 		OffCommand: "n/a",
-		UID: "mash tun volume",
+		UID:        "mash tun volume",
 	}
-	
+
 	a.AddGadget(mash)
-	poller, err := gogadgets.NewGPIO(&gogadgets.Pin{Port:"8", Pin:"9", Direction:"in", Edge:"rising"})
+	poller, err := gogadgets.NewGPIO(&gogadgets.Pin{Port: "8", Pin: "9", Direction: "in", Edge: "rising"})
 	if err != nil {
 		panic(err)
 	}
-	
+
 	hltVolume := &brewgadgets.HLT{
-		GPIO: poller.(gogadgets.Poller),
+		GPIO:  poller.(gogadgets.Poller),
 		Value: 26.5,
 		Units: "liters",
 	}
 	hlt := &gogadgets.Gadget{
-		Location: "hlt",
-		Name: "volume",
-		Input: hltVolume,
-		Direction: "input",
-		OnCommand: "n/a",
+		Location:   "hlt",
+		Name:       "volume",
+		Input:      hltVolume,
+		Direction:  "input",
+		OnCommand:  "n/a",
 		OffCommand: "n/a",
-		UID: "hlt volume",
+		UID:        "hlt volume",
 	}
 	a.AddGadget(hlt)
 
 	boilerVolume, _ := brewgadgets.NewBoiler()
 	boiler := &gogadgets.Gadget{
-		Location: "boiler",
-		Name: "volume",
-		Input: boilerVolume,
-		Direction: "input",
-		OnCommand: "n/a",
+		Location:   "boiler",
+		Name:       "volume",
+		Input:      boilerVolume,
+		Direction:  "input",
+		OnCommand:  "n/a",
 		OffCommand: "n/a",
-		UID: "boiler volume",
+		UID:        "boiler volume",
 	}
 	a.AddGadget(boiler)
 	a.Start()

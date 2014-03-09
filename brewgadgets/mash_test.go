@@ -1,13 +1,13 @@
 package brewgadgets
 
 import (
-	"testing"
 	"bitbucket.org/cswank/gogadgets"
+	"testing"
 )
 
 var (
 	config = &MashConfig{
-		TankRadius: 7.5 * 2.54,
+		TankRadius:  7.5 * 2.54,
 		ValveRadius: 0.1875 * 2.54,
 		Coefficient: 0.43244,
 	}
@@ -29,11 +29,11 @@ func TestSystem(t *testing.T) {
 
 	poller := &FakePoller{}
 	hlt := &HLT{
-		GPIO: poller,
+		GPIO:  poller,
 		Value: 25.0,
 		Units: "liters",
 	}
-	
+
 	dev, _ := NewMash(config)
 	mash := dev.(*Mash)
 
@@ -43,20 +43,20 @@ func TestSystem(t *testing.T) {
 	val := <-in
 	msg := gogadgets.Message{
 		Sender: "hlt volume",
-		Value: val,
+		Value:  val,
 	}
-	mashOut<- msg
-	
+	mashOut <- msg
+
 	msg = gogadgets.Message{
-		Type: "update",
+		Type:   "update",
 		Sender: "mash tun valve",
 		Value: gogadgets.Value{
-		Value: true,
+			Value: true,
 		},
 	}
-	
-	mashOut<- msg
-	
+
+	mashOut <- msg
+
 	// for {
 	// 	val := <- in
 	// 	fmt.Println(val)

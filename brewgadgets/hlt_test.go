@@ -1,9 +1,9 @@
 package brewgadgets
 
 import (
+	"bitbucket.org/cswank/gogadgets"
 	"testing"
 	"time"
-	"bitbucket.org/cswank/gogadgets"
 )
 
 type FakePoller struct {
@@ -24,7 +24,7 @@ func (f *FakePoller) Wait() (bool, error) {
 func _TestCreate(t *testing.T) {
 	poller := &FakePoller{}
 	_ = &HLT{
-		GPIO: poller,
+		GPIO:  poller,
 		Value: 5.0,
 		Units: "liters",
 	}
@@ -33,7 +33,7 @@ func _TestCreate(t *testing.T) {
 func TestHLT(t *testing.T) {
 	poller := &FakePoller{}
 	h := &HLT{
-		GPIO: poller,
+		GPIO:  poller,
 		Value: 5.0,
 		Units: "liters",
 	}
@@ -46,8 +46,8 @@ func TestHLT(t *testing.T) {
 	}
 	go func() {
 		time.Sleep(10 * time.Millisecond)
-		out<- gogadgets.Message{
-			Type: "update",
+		out <- gogadgets.Message{
+			Type:   "update",
 			Sender: "mash tun volume",
 			Value: gogadgets.Value{
 				Value: 0.5,

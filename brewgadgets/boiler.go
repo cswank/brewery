@@ -1,13 +1,13 @@
 package brewgadgets
 
 import (
+	"bitbucket.org/cswank/gogadgets"
 	"log"
 	"time"
-	"bitbucket.org/cswank/gogadgets"
 )
 
 /*
-Measures the volume in the boiler.  
+Measures the volume in the boiler.
 
 Unlike the flow of water from the HLT to the mash tun,
 the source of the boilers water is the mash tun and it
@@ -21,17 +21,17 @@ is now in the volume.
 
 type Boiler struct {
 	gogadgets.InputDevice
-	Volume float64
-	Units string
+	Volume     float64
+	Units      string
 	mashVolume float64
-	waitTime time.Duration
-	value chan float64
-	out chan<- gogadgets.Value
+	waitTime   time.Duration
+	value      chan float64
+	out        chan<- gogadgets.Value
 }
 
 func NewBoiler() (gogadgets.InputDevice, error) {
 	return &Boiler{
-		Units: "L",
+		Units:    "L",
 		waitTime: time.Duration(60 * 5 * time.Second),
 	}, nil
 }
@@ -42,7 +42,7 @@ func (b *Boiler) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) 
 	err := make(chan error)
 	for {
 		select {
-		case msg := <- in:
+		case msg := <-in:
 			b.readMessage(msg)
 		case val := <-b.value:
 			b.Volume = val
@@ -63,7 +63,7 @@ func (b *Boiler) GetValue() *gogadgets.Value {
 func (b *Boiler) wait(out chan<- float64) {
 	time.Sleep(b.waitTime)
 	totalVolume := b.mashVolume + b.Volume
-	out<- totalVolume
+	out <- totalVolume
 }
 
 func (b *Boiler) readMessage(msg gogadgets.Message) {
@@ -75,7 +75,7 @@ func (b *Boiler) readMessage(msg gogadgets.Message) {
 }
 
 func (b *Boiler) sendValue() {
-	b.out<- gogadgets.Value{
+	b.out <- gogadgets.Value{
 		Value: b.Volume,
 		Units: b.Units,
 	}
