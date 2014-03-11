@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	configFlag = flag.String("c", "", "Path to the config json file")
+	cfg = flag.String("c", "", "Path to the config json file")
 )
 
 func main() {
@@ -18,13 +18,8 @@ func main() {
 	if !utils.FileExists("/sys/bus/w1/devices/28-0000047ade8f") {
 		ioutil.WriteFile("/sys/devices/bone_capemgr.9/slots", []byte("BB-W1:00A0"), 0666)
 	}
-	b, err := ioutil.ReadFile(*configFlag)
-	if err != nil {
-		panic(err)
-	}
-	cfg := &gogadgets.Config{}
-	err = json.Unmarshal(b, cfg)
-	a := gogadgets.NewApp(cfg)
+	
+	a := gogadgets.NewApp(*cfg)
 
 	config := &brewgadgets.MashConfig{
 		TankRadius:  7.5 * 2.54,
