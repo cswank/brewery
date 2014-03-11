@@ -4,7 +4,6 @@ import (
 	"bitbucket.org/cswank/brewery/brewgadgets"
 	"bitbucket.org/cswank/gogadgets"
 	"bitbucket.org/cswank/gogadgets/utils"
-	"encoding/json"
 	"flag"
 	"io/ioutil"
 )
