@@ -10,6 +10,17 @@
 	    }
         },
         {
+	    "location": "brewery",
+	    "name": "recorder",
+	    "pin": {
+		"type": "recorder",
+		"args": {
+                    "host": "nausori",
+                    "db": "brewery"
+                }
+	    }
+        },
+        {
 	    "location": "hlt",
 	    "name": "valve",
             "onCommand": "fill hlt",
