@@ -18,7 +18,7 @@ func main() {
 }
 
 func GetRecipe(w http.ResponseWriter, r *http.Request) {
-	auth.CheckAuth(w, r, controllers.GetRecipe)
+	auth.CheckAuth(w, r, controllers.GetRecipe, "write")
 }
 
 func GetPing(w http.ResponseWriter, r *http.Request, "read") {
