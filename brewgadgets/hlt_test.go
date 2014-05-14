@@ -3,7 +3,7 @@ package brewgadgets
 import (
 	"testing"
 	"time"
-	"bitbucket.com/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets"
 )
 
 type FakePoller struct {

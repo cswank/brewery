@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 	"math"
-	"bitbucket.com/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets"
 )
 
 type Mash struct {

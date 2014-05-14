@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"testing"
 	"encoding/json"
-	"bitbucket.com/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets"
 	"github.com/vaughan0/go-zmq"
 )
 
