@@ -1,30 +1,30 @@
 package brewgadgets
 
 import (
-	"fmt"
-	"time"
-	"math"
 	"bitbucket.org/cswank/gogadgets"
+	"fmt"
+	"math"
+	"time"
 )
 
 type Mash struct {
 	gogadgets.InputDevice
-	Volume float64
-	previousVolume float64 
-	Units string
-	HLTVolume float64
-	out chan<- gogadgets.Value
-	k float64
-	x float64
-	tankArea float64
-	valveArea float64
-	valveStatus bool
-	endTime time.Time
-	stop chan bool
+	Volume         float64
+	previousVolume float64
+	Units          string
+	HLTVolume      float64
+	out            chan<- gogadgets.Value
+	k              float64
+	x              float64
+	tankArea       float64
+	valveArea      float64
+	valveStatus    bool
+	endTime        time.Time
+	stop           chan bool
 }
 
 type MashConfig struct {
-	TankRadius float64
+	TankRadius  float64
 	ValveRadius float64
 	Coefficient float64
 }
@@ -36,10 +36,10 @@ func NewMash(config *MashConfig) (gogadgets.InputDevice, error) {
 	x := math.Pow((2.0 / g), 0.5)
 	k := (tankArea * x) / (valveArea * config.Coefficient)
 	return &Mash{
-		Units: "L",
-		k: k,
-		x: x,
-		tankArea: tankArea,
+		Units:     "L",
+		k:         k,
+		x:         x,
+		tankArea:  tankArea,
 		valveArea: valveArea,
 	}, nil
 }
@@ -62,7 +62,7 @@ func (m *Mash) GetValue() *gogadgets.Value {
 
 func (m *Mash) sendCurrentVolume(startVolume float64, duration time.Duration) {
 	m.Volume = m.previousVolume + m.GetVolume(startVolume, duration.Seconds())
-	m.out<- gogadgets.Value{
+	m.out <- gogadgets.Value{
 		Value: m.Volume,
 		Units: m.Units,
 	}
@@ -75,7 +75,7 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 			m.previousVolume = m.Volume
 			go m.monitor(m.stop)
 		} else if msg.Value.Value == false && m.valveStatus {
-			m.stop<- true
+			m.stop <- true
 			m.valveStatus = false
 		}
 	} else if msg.Sender == "hlt volume" {
@@ -83,7 +83,7 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 	} else if msg.Sender == "boiler volume" && msg.Value.Value.(float64) > 0.0 {
 		m.previousVolume = 0.0
 		m.Volume = 0.0
-		m.out<- *m.GetValue()
+		m.out <- *m.GetValue()
 	}
 }
 
@@ -104,7 +104,7 @@ func (m *Mash) monitor(stop <-chan bool) {
 				d = time.Since(startTime)
 				m.sendCurrentVolume(startVolume, d)
 			} else {
-				
+
 			}
 		}
 	}
@@ -113,7 +113,7 @@ func (m *Mash) monitor(stop <-chan bool) {
 
 func (m *Mash) GetVolume(startVolume, elapsedTime float64) float64 {
 	height := m.getHeight(startVolume)
-	dh := math.Abs(math.Pow((elapsedTime / m.k), 2) - (2 * (elapsedTime / m.k) * math.Pow(height, 0.5)))
+	dh := math.Abs(math.Pow((elapsedTime/m.k), 2) - (2 * (elapsedTime / m.k) * math.Pow(height, 0.5)))
 	if math.IsNaN(dh) {
 		dh = 0.0
 	}
@@ -156,7 +156,7 @@ func getLiter(mash *Mash, gpio gogadgets.OutputDevice) float64 {
 	mash.HLTVolume -= 1.0
 	return mash.GetCoefficient(mash.HLTVolume, 1.0, duration.Seconds())
 }
-	
+
 func Calibrate(mash *Mash, mashValve gogadgets.OutputDevice) {
 	coefficients := make([]float64, 5)
 	for i := 0; i < 5; i++ {
@@ -165,6 +165,3 @@ func Calibrate(mash *Mash, mashValve gogadgets.OutputDevice) {
 	}
 	fmt.Println(coefficients)
 }
-	
-	
-	

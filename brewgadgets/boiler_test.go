@@ -1,18 +1,18 @@
 package brewgadgets
 
 import (
+	"bitbucket.org/cswank/gogadgets"
+	"encoding/json"
 	"fmt"
-	"time"
+	"github.com/vaughan0/go-zmq"
 	"math/rand"
 	"testing"
-	"encoding/json"
-	"bitbucket.org/cswank/gogadgets"
-	"github.com/vaughan0/go-zmq"
+	"time"
 )
 
 var (
 	bigConfig = &MashConfig{
-		TankRadius: 7.5 * 2.54,
+		TankRadius:  7.5 * 2.54,
 		ValveRadius: 1,
 		Coefficient: 0.43244,
 	}
@@ -20,27 +20,27 @@ var (
 
 func TestBoiler(t *testing.T) {
 	b := Boiler{
-		Units: "liters",
+		Units:    "liters",
 		waitTime: time.Duration(10 * time.Millisecond),
 	}
 
 	out := make(chan gogadgets.Message)
 	in := make(chan gogadgets.Value)
 	go b.Start(out, in)
-	
+
 	time.Sleep(10 * time.Millisecond)
-	out<- gogadgets.Message{
-			Type: "update",
-			Sender: "mash tun volume",
-			Value: gogadgets.Value{
-				Value: 25.0,
-			},
+	out <- gogadgets.Message{
+		Type:   "update",
+		Sender: "mash tun volume",
+		Value: gogadgets.Value{
+			Value: 25.0,
+		},
 	}
-	
+
 	go func() {
 		time.Sleep(10 * time.Millisecond)
-		out<- gogadgets.Message{
-			Type: "update",
+		out <- gogadgets.Message{
+			Type:   "update",
 			Sender: "boiler valve",
 			Value: gogadgets.Value{
 				Value: true,
@@ -48,7 +48,7 @@ func TestBoiler(t *testing.T) {
 		}
 	}()
 	val := <-in
-	
+
 	if val.Value.(float64) != 25.0 {
 		t.Error(val)
 	}
@@ -57,46 +57,47 @@ func TestBoiler(t *testing.T) {
 func TestBoilerAndMash(t *testing.T) {
 	mashVolume, _ := NewMash(bigConfig)
 	mash := &gogadgets.Gadget{
-		Location: "mash tun",
-		Name: "volume",
-		Input: mashVolume,
-		Direction: "input",
-		OnCommand: "n/a",
+		Location:   "mash tun",
+		Name:       "volume",
+		Input:      mashVolume,
+		Direction:  "input",
+		OnCommand:  "n/a",
 		OffCommand: "n/a",
-		UID: "mash tun volume",
+		UID:        "mash tun volume",
 	}
 
 	boilerVolume := &Boiler{
-		Units: "liters",
+		Units:    "liters",
 		waitTime: time.Duration(1000 * time.Millisecond),
 	}
 	boiler := &gogadgets.Gadget{
-		Location: "boiler",
-		Name: "volume",
-		Input: boilerVolume,
-		Direction: "input",
-		OnCommand: "n/a",
+		Location:   "boiler",
+		Name:       "volume",
+		Input:      boilerVolume,
+		Direction:  "input",
+		OnCommand:  "n/a",
 		OffCommand: "n/a",
-		UID: "boiler volume",
+		UID:        "boiler volume",
 	}
-	pubPort := 1024 + rand.Intn(65535 - 1024)
+	pubPort := 1024 + rand.Intn(65535-1024)
 	subPort := pubPort + 1
-	
+
 	app := &gogadgets.App{
 		MasterHost: "localhost",
-		PubPort: pubPort,
-		SubPort: subPort,
-		Gadgets: []gogadgets.GoGadget{mash, boiler},
+		PubPort:    pubPort,
+		SubPort:    subPort,
+		Gadgets:    []gogadgets.GoGadget{mash, boiler},
 	}
+
 	input := make(chan gogadgets.Message)
-	go app.Start(input)
+	go app.GoStart(input)
 
 	ctx, err := zmq.NewContext()
 	defer ctx.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	pub, err := ctx.Socket(zmq.Pub)
 	defer pub.Close()
 	if err != nil {
@@ -118,9 +119,9 @@ func TestBoilerAndMash(t *testing.T) {
 		t.Fatal(err)
 	}
 	sub.Subscribe([]byte(""))
-	
-	input<- gogadgets.Message{
-		Type: "update",
+
+	input <- gogadgets.Message{
+		Type:   "update",
 		Sender: "hlt volume",
 		Value: gogadgets.Value{
 			Value: 25.0,
@@ -130,16 +131,16 @@ func TestBoilerAndMash(t *testing.T) {
 
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		input<- gogadgets.Message{
-			Type: "update",
+		input <- gogadgets.Message{
+			Type:   "update",
 			Sender: "mash tun valve",
 			Value: gogadgets.Value{
 				Value: true,
 			},
 		}
 		time.Sleep(100 * time.Millisecond)
-		input<- gogadgets.Message{
-			Type: "update",
+		input <- gogadgets.Message{
+			Type:   "update",
 			Sender: "mash tun valve",
 			Value: gogadgets.Value{
 				Value: false,
@@ -156,8 +157,8 @@ func TestBoilerAndMash(t *testing.T) {
 		json.Unmarshal(parts[1], msg)
 		if msg.Sender == "mash tun valve" && msg.Value.Value == false {
 			time.Sleep(100 * time.Millisecond)
-			input<- gogadgets.Message{
-				Type: "update",
+			input <- gogadgets.Message{
+				Type:   "update",
 				Sender: "boiler valve",
 				Value: gogadgets.Value{
 					Value: true,

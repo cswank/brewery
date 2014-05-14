@@ -1,119 +1,127 @@
 {
-    "MasterHost": "localhost",
-    "SubPort": 6111,
-    "PubPort": 6112,
-    "Gadgets": [
+    "gadgets": [
         {
-	    "Location": "brewery",
-	    "Name": "fan",
-	    "Pin": {
-		"Type": "gpio",
-		"Port": "8",
-		"Pin": "7"               
+	    "location": "brewery",
+	    "name": "fan",
+	    "pin": {
+		"type": "gpio",
+		"port": "8",
+		"pin": "7"               
 	    }
         },
         {
-	    "Location": "hlt",
-	    "Name": "valve",
-            "OnCommand": "fill hlt",
-            "OffCommand": "stop filling hlt",
-	    "Pin": {
-		"Type": "gpio",
-		"Port": "8",
-		"Pin": "8"
+	    "location": "brewery",
+	    "name": "recorder",
+	    "pin": {
+		"type": "recorder",
+		"args": {
+                    "host": "nausori",
+                    "db": "brewery"
+                }
 	    }
         },
         {
-	    "Location": "hlt",
-	    "Name": "temperature",
-	    "Pin": {
-		"Type": "thermometer",
+	    "location": "hlt",
+	    "name": "valve",
+            "onCommand": "fill hlt",
+            "offCommand": "stop filling hlt",
+	    "pin": {
+		"type": "gpio",
+		"port": "8",
+		"pin": "8"
+	    }
+        },
+        {
+	    "location": "hlt",
+	    "name": "temperature",
+	    "pin": {
+		"type": "thermometer",
 		"OneWireId": "28-000002b01241",
 		"Units": "C"
 	    }
         },
 	{
-	    "Location": "hlt",
-	    "Name": "heater",
-            "OnCommand": "heat hlt",
-            "OffCommand": "stop heating hlt",
-	    "Pin": {
-		"Type": "heater",
-		"Port": "8",
-		"Pin": "15"
+	    "location": "hlt",
+	    "name": "heater",
+            "onCommand": "heat hlt",
+            "offCommand": "stop heating hlt",
+	    "pin": {
+		"type": "heater",
+		"port": "8",
+		"pin": "15"
 	    }
         },
         {
-	    "Location": "mash tun",
-	    "Name": "valve",
-            "OnCommand": "fill mash tun",
-            "OffCommand": "stop filling mash tun",
-	    "Pin": {
-		"Type": "gpio",
-		"Port": "8",
-		"Pin": "10"
+	    "location": "mash tun",
+	    "name": "valve",
+            "onCommand": "fill mash tun",
+            "offCommand": "stop filling mash tun",
+	    "pin": {
+		"type": "gpio",
+		"port": "8",
+		"pin": "10"
 	    }
         },
         {
-	    "Location": "mash tun",
-	    "Name": "temperature",
-	    "Pin": {
-		"Type": "thermometer",
+	    "location": "mash tun",
+	    "name": "temperature",
+	    "pin": {
+		"type": "thermometer",
 		"OneWireId": "28-0000025ed750",
 		"Units": "C"
 	    }
         },
         {
-	    "Location": "boiler",
-	    "Name": "valve",
-            "OnCommand": "fill boiler",
-            "OffCommand": "stop filling boiler",
-	    "Pin": {
-		"Type": "gpio",
-		"Port": "8",
-		"Pin": "11"
+	    "location": "boiler",
+	    "name": "valve",
+            "onCommand": "fill boiler",
+            "offCommand": "stop filling boiler",
+	    "pin": {
+		"type": "gpio",
+		"port": "8",
+		"pin": "11"
 	    }
         },
         {
-	    "Location": "boiler",
-	    "Name": "heater",
-            "OnCommand": "heat boiler",
-            "OffCommand": "stop heating boiler",
-	    "Pin": {
-		"Type": "heater",
-		"Port": "8",
-		"Pin": "16"
+	    "location": "boiler",
+	    "name": "heater",
+            "onCommand": "heat boiler",
+            "offCommand": "stop heating boiler",
+	    "pin": {
+		"type": "heater",
+		"port": "8",
+		"pin": "16"
 	    }
         },
         {
-	    "Location": "boiler",
-	    "Name": "cooler",
-            "OnCommand": "cool boiler",
-            "OffCommand": "stop cooling boiler",
-	    "Pin": {
-		"Type": "cooler",
-		"Port": "8",
-		"Pin": "12"
+	    "location": "boiler",
+	    "name": "cooler",
+            "onCommand": "cool boiler",
+            "offCommand": "stop cooling boiler",
+	    "pin": {
+		"type": "cooler",
+		"port": "8",
+		"pin": "12"
 	    }
         },
 	{
-	    "Location": "boiler",
-	    "Name": "temperature",
-	    "Pin": {
-		"Type": "thermometer",
+	    "location": "boiler",
+	    "name": "temperature",
+	    "pin": {
+		"type": "thermometer",
 		"OneWireId": "28-0000025f0aba",
 		"Units": "C"
 	    }
         },
         {
-	    "Location": "carboy",
-	    "Name": "pump",
-            "OnCommand": "fill carboy",
-            "OffCommand": "stop filling carboy",
-	    "Pin": {
-		"Type": "gpio",
-		"Port": "8",
-		"Pin": "14"
+	    "location": "carboy",
+	    "name": "pump",
+            "onCommand": "fill carboy",
+            "offCommand": "stop filling carboy",
+	    "pin": {
+		"type": "gpio",
+		"port": "8",
+		"pin": "14"
 	    }
         }
     ]

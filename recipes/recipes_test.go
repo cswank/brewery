@@ -1,12 +1,11 @@
 package recipes
 
 import (
-	"testing"
-	"io/ioutil"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"testing"
 )
-
 
 func TestExample(t *testing.T) {
 	b, _ := ioutil.ReadFile("example.json")
@@ -32,11 +31,11 @@ func TestExample(t *testing.T) {
 	if f.Amount != 7.9999904859952 {
 		t.Error(f)
 	}
-	
+
 	if len(recipe.MashSteps) != 2 {
 		t.Error(recipe.Yeasts)
 	}
-	
+
 	step := recipe.MashSteps[0]
 	if step.Temperature != 154.4 {
 		t.Error(step)
@@ -55,7 +54,7 @@ func TestMethod(t *testing.T) {
 	if len(m) != 37 {
 		t.Error(len(m))
 	}
-	
+
 }
 
 func TestMash(t *testing.T) {
@@ -75,7 +74,6 @@ func TestMash(t *testing.T) {
 		t.Error(recipe.getGrainWeight())
 	}
 }
-
 
 func TestNewRecipe(t *testing.T) {
 	r, err := NewRecipe("vladimirs-own-stout")

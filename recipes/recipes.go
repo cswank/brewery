@@ -1,56 +1,56 @@
 package recipes
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"encoding/json"
 )
 
 type Fermentable struct {
-	Name string  `json:"name"`
-        Amount float64 `json:"amount"`
-        Color int `json:"color"`
-	Unit string `json:"unit"`
+	Name   string  `json:"name"`
+	Amount float64 `json:"amount"`
+	Color  int     `json:"color"`
+	Unit   string  `json:"unit"`
 }
 
 type Hop struct {
-        Name string `json:"name"`
+	Name   string  `json:"name"`
 	Amount float64 `json:"amount"`
-        Alpha float64 `xml:"alpha"`
-        Beta float64 `xml:"beta"`
-        Time float64 `xml:"time"`
+	Alpha  float64 `xml:"alpha"`
+	Beta   float64 `xml:"beta"`
+	Time   float64 `xml:"time"`
 }
 
 type Yeast struct {
-        Name string `json:"name"`
-        Attenuation float64 `json:"attenuation"`
+	Name        string  `json:"name"`
+	Attenuation float64 `json:"attenuation"`
 }
 
 type MashStep struct {
 	Temperature float64 `json:"target_temperature"`
-	Metric bool `json:"target_temperature_is_metric"`
-	Time float64 `json:"time"`
+	Metric      bool    `json:"target_temperature_is_metric"`
+	Time        float64 `json:"time"`
 }
 
 type Recipe struct {
-	Name    string `json:"name"`
-	BatchSize float64  `json:"batch_size"`
-	BoilSize  float64 `json:"boil_size"`
-	BoilTime  float64 `json:"boil_time"`
-	Efficiency float64 `json:"efficiency"`
-	Fermentables  []Fermentable `json:"ordered_recipe_fermentables"`
-	WaterRatio float64
-	Hops []Hop `json:"ordered_recipe_hops"`
-	Yeasts []Yeast `json:"recipe_yeasts"`
-	MashSteps []MashStep `json:"recipe_mash_steps"`
+	Name         string        `json:"name"`
+	BatchSize    float64       `json:"batch_size"`
+	BoilSize     float64       `json:"boil_size"`
+	BoilTime     float64       `json:"boil_time"`
+	Efficiency   float64       `json:"efficiency"`
+	Fermentables []Fermentable `json:"ordered_recipe_fermentables"`
+	WaterRatio   float64
+	Hops         []Hop      `json:"ordered_recipe_hops"`
+	Yeasts       []Yeast    `json:"recipe_yeasts"`
+	MashSteps    []MashStep `json:"recipe_mash_steps"`
 }
 
 type Mash struct {
-	Volume float64
-	StrikeTemperature float64
-	Time float64
-	SpargeVolume float64
+	Volume             float64
+	StrikeTemperature  float64
+	Time               float64
+	SpargeVolume       float64
 	SecondSpargeVolume float64
 }
 
@@ -78,14 +78,13 @@ func (r *Recipe) getMash(grainTemperature float64) *Mash {
 	grainWeight := r.getGrainWeight()
 	mashVolume := r.getMashVolume(grainWeight)
 	return &Mash{
-		StrikeTemperature: r.getStrikeTemperature(grainTemperature),
-		Volume: mashVolume,
-		SpargeVolume: r.getSpargeVolume(mashVolume, grainWeight),
+		StrikeTemperature:  r.getStrikeTemperature(grainTemperature),
+		Volume:             mashVolume,
+		SpargeVolume:       r.getSpargeVolume(mashVolume, grainWeight),
 		SecondSpargeVolume: r.BoilSize / 2.0,
-		Time: r.getMashTime(),
-        }
+		Time:               r.getMashTime(),
+	}
 }
-
 
 func (r *Recipe) getGrainWeight() float64 {
 	weight := 0.0
@@ -104,7 +103,6 @@ func (r *Recipe) getTargetTemperature() (t float64) {
 	return t
 }
 
-
 func (r *Recipe) getMashTime() (t float64) {
 	if len(r.MashSteps) > 0 {
 		t = r.MashSteps[0].Time
@@ -116,11 +114,11 @@ func (r *Recipe) getMashTime() (t float64) {
 
 func (r *Recipe) getStrikeTemperature(grainTemperature float64) float64 {
 	targetTemperature := r.getTargetTemperature()
-	return (0.2 * r.WaterRatio) * (targetTemperature - grainTemperature) + targetTemperature
+	return (0.2*r.WaterRatio)*(targetTemperature-grainTemperature) + targetTemperature
 }
 
 func (r *Recipe) getInfusionVolume(initialTemperature, targetTemperature, volume, grainWeight, waterTemperature, mashTemperature float64) float64 {
-	return (targetTemperature - initialTemperature)* (0.2 * grainWeight + volume) / (waterTemperature - targetTemperature)
+	return (targetTemperature - initialTemperature) * (0.2*grainWeight + volume) / (waterTemperature - targetTemperature)
 }
 
 func (r *Recipe) getMashVolume(grainWeight float64) float64 {
@@ -152,22 +150,22 @@ func (r *Recipe) GetMethod(grainTemperature float64) []string {
 		"fill hlt to 1.0 liters",
 		fmt.Sprintf("heat hlt 185 %s", temperatureUnits),
 		fmt.Sprintf("wait for %f minutes", mash.Time),
-		fmt.Sprintf("fill tun to %f %s", mash.SpargeVolume, volumeUnits),//{sparge_volume} {volume_units}"
+		fmt.Sprintf("fill tun to %f %s", mash.SpargeVolume, volumeUnits), //{sparge_volume} {volume_units}"
 		"wait for 10 minutes",
 		"wait for user ready to recirculate",
 		"fill boiler",
 		"wait for user recirculated",
-		fmt.Sprintf("fill boiler to %f %s", mash.SpargeVolume, volumeUnits),//{sparge_volume} {volume_units}"
+		fmt.Sprintf("fill boiler to %f %s", mash.SpargeVolume, volumeUnits), //{sparge_volume} {volume_units}"
 		"heat boiler to 190 F",
-		fmt.Sprintf("wait for boiler volume >= %f %s", mash.SpargeVolume, volumeUnits),//{sparge_volume} {volume_units}"
-		fmt.Sprintf("fill tun %f %s", mash.SecondSpargeVolume, volumeUnits),//{second_sparge_volume} {volume_units}"
-		fmt.Sprintf("wait for tun volume >= %f %s", mash.SecondSpargeVolume, volumeUnits),//{second_sparge_volume} {volume_units}"
+		fmt.Sprintf("wait for boiler volume >= %f %s", mash.SpargeVolume, volumeUnits),    //{sparge_volume} {volume_units}"
+		fmt.Sprintf("fill tun %f %s", mash.SecondSpargeVolume, volumeUnits),               //{second_sparge_volume} {volume_units}"
+		fmt.Sprintf("wait for tun volume >= %f %s", mash.SecondSpargeVolume, volumeUnits), //{second_sparge_volume} {volume_units}"
 		"stop heating hlt",
 		"wait for 2 minutes",
 		"wait for user ready to recirculate",
 		"fill boiler",
 		"wait for user recirculated",
-		fmt.Sprintf("fill boiler to %f %s", mash.SecondSpargeVolume + mash.SpargeVolume, volumeUnits),
+		fmt.Sprintf("fill boiler to %f %s", mash.SecondSpargeVolume+mash.SpargeVolume, volumeUnits),
 		"heat boiler to 204 F",
 		"turn on fan",
 		fmt.Sprintf("wait for %f minutes", r.BoilTime),
