@@ -8,6 +8,12 @@ import (
 	"net/http"
 )
 
+
+func GetPing(w http.ResponseWriter, r *http.Request) error {
+	w.Write([]byte("ping"))
+	return nil
+}
+
 func GetRecipe(w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	recipeName := vars["name"]
