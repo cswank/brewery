@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"github.com/gorilla/mux"
 	"bitbucket.org/cswank/gadgetsweb/models"
 	"bitbucket.org/cswank/brewery/recipes"
 	"encoding/json"
@@ -9,13 +8,12 @@ import (
 )
 
 
-func GetPing(w http.ResponseWriter, r *http.Request) error {
+func GetPing(w http.ResponseWriter, r *http.Request, u *models.User, vars map[string]string) error {
 	w.Write([]byte("ping"))
 	return nil
 }
 
-func GetRecipe(w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)
+func GetRecipe(w http.ResponseWriter, r *http.Request, u *models.User, vars map[string]string) error {
 	recipeName := vars["name"]
 	recipe, err := recipes.NewRecipe(recipeName)
 	if err != nil {
