@@ -1,28 +1,29 @@
 package brewgadgets
 
 import (
-	"bitbucket.org/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets/input"
+	"bitbucket.org/cswank/gogadgets/models"
 	"log"
 )
 
 type HLT struct {
-	gogadgets.InputDevice
-	GPIO        gogadgets.Poller
+	input.InputDevice
+	GPIO        input.Poller
 	Value       float64
 	Units       string
 	Volume      float64
 	startVolume float64
-	out         chan<- gogadgets.Value
+	out         chan<- models.Value
 }
 
-func NewHLT(pin *gogadgets.Pin) (gogadgets.InputDevice, error) {
+func NewHLT(pin *models.Pin) (input.InputDevice, error) {
 	var err error
 	var h *HLT
 	pin.Edge = "rising"
-	gpio, err := gogadgets.NewGPIO(pin)
+	gpio, err := input.NewSwitch(pin)
 	if err == nil {
 		h = &HLT{
-			GPIO:  gpio.(gogadgets.Poller),
+			GPIO:  gpio.(input.Poller),
 			Value: pin.Value.(float64),
 			Units: pin.Units,
 		}
@@ -30,7 +31,7 @@ func NewHLT(pin *gogadgets.Pin) (gogadgets.InputDevice, error) {
 	return h, err
 }
 
-func (h *HLT) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
+func (h *HLT) Start(in <-chan models.Message, out chan<- models.Value) {
 	h.out = out
 	value := make(chan float64)
 	err := make(chan error)
@@ -49,8 +50,8 @@ func (h *HLT) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
 	}
 }
 
-func (h *HLT) GetValue() *gogadgets.Value {
-	return &gogadgets.Value{
+func (h *HLT) GetValue() *models.Value {
+	return &models.Value{
 		Value: h.Volume,
 		Units: h.Units,
 	}
@@ -71,7 +72,7 @@ func (h *HLT) wait(out chan<- float64, err chan<- error) {
 	}
 }
 
-func (h *HLT) readMessage(msg gogadgets.Message) {
+func (h *HLT) readMessage(msg models.Message) {
 	if msg.Sender == "mash tun volume" && msg.Value.Value.(float64) > 0.0 {
 		h.Volume = h.startVolume - msg.Value.Value.(float64)
 		h.sendValue()
@@ -81,7 +82,7 @@ func (h *HLT) readMessage(msg gogadgets.Message) {
 }
 
 func (h *HLT) sendValue() {
-	h.out <- gogadgets.Value{
+	h.out <- models.Value{
 		Value: h.Volume,
 		Units: h.Units,
 	}

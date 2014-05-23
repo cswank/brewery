@@ -1,7 +1,8 @@
 package brewgadgets
 
 import (
-	"bitbucket.org/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets/input"
+	"bitbucket.org/cswank/gogadgets/models"
 	"log"
 	"time"
 )
@@ -20,23 +21,23 @@ is now in the volume.
 */
 
 type Boiler struct {
-	gogadgets.InputDevice
+	input.InputDevice
 	Volume     float64
 	Units      string
 	mashVolume float64
 	waitTime   time.Duration
 	value      chan float64
-	out        chan<- gogadgets.Value
+	out        chan<- models.Value
 }
 
-func NewBoiler() (gogadgets.InputDevice, error) {
+func NewBoiler() (input.InputDevice, error) {
 	return &Boiler{
 		Units:    "L",
 		waitTime: time.Duration(60 * 5 * time.Second),
 	}, nil
 }
 
-func (b *Boiler) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
+func (b *Boiler) Start(in <-chan models.Message, out chan<- models.Value) {
 	b.out = out
 	b.value = make(chan float64)
 	err := make(chan error)
@@ -53,8 +54,8 @@ func (b *Boiler) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) 
 	}
 }
 
-func (b *Boiler) GetValue() *gogadgets.Value {
-	return &gogadgets.Value{
+func (b *Boiler) GetValue() *models.Value {
+	return &models.Value{
 		Value: b.Volume,
 		Units: b.Units,
 	}
@@ -66,7 +67,7 @@ func (b *Boiler) wait(out chan<- float64) {
 	out <- totalVolume
 }
 
-func (b *Boiler) readMessage(msg gogadgets.Message) {
+func (b *Boiler) readMessage(msg models.Message) {
 	if msg.Sender == "mash tun volume" {
 		b.mashVolume = msg.Value.Value.(float64)
 	} else if msg.Sender == "boiler valve" && msg.Value.Value == true {
@@ -75,7 +76,7 @@ func (b *Boiler) readMessage(msg gogadgets.Message) {
 }
 
 func (b *Boiler) sendValue() {
-	b.out <- gogadgets.Value{
+	b.out <- models.Value{
 		Value: b.Volume,
 		Units: b.Units,
 	}

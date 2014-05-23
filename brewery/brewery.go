@@ -2,10 +2,10 @@ package main
 
 import (
 	"bitbucket.org/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets/models"
+	"bitbucket.org/cswank/gogadgets/input"
 	"bitbucket.org/cswank/gogadgets/utils"
 	"bitbucket.org/cswank/brewery/brewgadgets"
-	"encoding/json"
-	"io/ioutil"
 	"flag"
 	"io/ioutil"
 )
@@ -40,13 +40,13 @@ func main() {
 	}
 
 	a.AddGadget(mash)
-	poller, err := gogadgets.NewGPIO(&gogadgets.Pin{Port: "8", Pin: "9", Direction: "in", Edge: "rising"})
+	poller, err := input.NewSwitch(&models.Pin{Port: "8", Pin: "9", Direction: "in", Edge: "rising"})
 	if err != nil {
 		panic(err)
 	}
 
 	hltVolume := &brewgadgets.HLT{
-		GPIO:  poller.(gogadgets.Poller),
+		GPIO:  poller.(input.Poller),
 		Value: 26.5,
 		Units: "liters",
 	}
