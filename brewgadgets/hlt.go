@@ -2,6 +2,7 @@ package brewgadgets
 
 import (
 	"bitbucket.org/cswank/gogadgets/input"
+	"bitbucket.org/cswank/gogadgets/output"
 	"bitbucket.org/cswank/gogadgets/models"
 	"log"
 )
@@ -20,7 +21,7 @@ func NewHLT(pin *models.Pin) (input.InputDevice, error) {
 	var err error
 	var h *HLT
 	pin.Edge = "rising"
-	gpio, err := input.NewSwitch(pin)
+	gpio, err := output.NewSwitch(pin)
 	if err == nil {
 		h = &HLT{
 			GPIO:  gpio.(input.Poller),
