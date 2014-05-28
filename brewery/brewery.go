@@ -4,6 +4,7 @@ import (
 	"bitbucket.org/cswank/gogadgets"
 	"bitbucket.org/cswank/gogadgets/models"
 	"bitbucket.org/cswank/gogadgets/input"
+	"bitbucket.org/cswank/gogadgets/output"
 	"bitbucket.org/cswank/gogadgets/utils"
 	"bitbucket.org/cswank/brewery/brewgadgets"
 	"flag"
@@ -40,7 +41,7 @@ func main() {
 	}
 
 	a.AddGadget(mash)
-	poller, err := input.NewSwitch(&models.Pin{Port: "8", Pin: "9", Direction: "in", Edge: "rising"})
+	poller, err := outpu.NewGPIO(&models.Pin{Port: "8", Pin: "9", Direction: "in", Edge: "rising"})
 	if err != nil {
 		panic(err)
 	}
