@@ -41,7 +41,7 @@ func main() {
 	}
 
 	a.AddGadget(mash)
-	poller, err := outpu.NewGPIO(&models.Pin{Port: "8", Pin: "9", Direction: "in", Edge: "rising"})
+	poller, err := output.NewGPIO(&models.Pin{Port: "8", Pin: "9", Direction: "in", Edge: "rising"})
 	if err != nil {
 		panic(err)
 	}
