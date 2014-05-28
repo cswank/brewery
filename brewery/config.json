@@ -89,8 +89,8 @@
             "offCommand": "stop heating boiler",
 	    "pin": {
 		"type": "heater",
-		"port": "8",
-		"pin": "19"
+		"port": "9",
+		"pin": "16"
 	    }
         },
         {
