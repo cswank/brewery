@@ -2,12 +2,14 @@ package brewgadgets
 
 import (
 	"bitbucket.org/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets/models"
+	"bitbucket.org/cswank/gogadgets/input"
 	"testing"
 	"time"
 )
 
 type FakePoller struct {
-	gogadgets.Poller
+	input.Poller
 	val bool
 }
 
@@ -37,8 +39,8 @@ func TestHLT(t *testing.T) {
 		Value: 5.0,
 		Units: "liters",
 	}
-	out := make(chan gogadgets.Message)
-	in := make(chan gogadgets.Value)
+	out := make(chan models.Message)
+	in := make(chan models.Value)
 	go h.Start(out, in)
 	val := <-in
 	if val.Value.(float64) != 5.0 {
@@ -46,10 +48,10 @@ func TestHLT(t *testing.T) {
 	}
 	go func() {
 		time.Sleep(10 * time.Millisecond)
-		out <- gogadgets.Message{
+		out <- models.Message{
 			Type:   "update",
 			Sender: "mash tun volume",
-			Value: gogadgets.Value{
+			Value: models.Value{
 				Value: 0.5,
 			},
 		}

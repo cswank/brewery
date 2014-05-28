@@ -21,7 +21,7 @@ func NewHLT(pin *models.Pin) (input.InputDevice, error) {
 	var err error
 	var h *HLT
 	pin.Edge = "rising"
-	gpio, err := output.NewSwitch(pin)
+	gpio, err := output.NewGPIO(pin)
 	if err == nil {
 		h = &HLT{
 			GPIO:  gpio.(input.Poller),
