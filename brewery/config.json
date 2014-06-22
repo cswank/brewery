@@ -48,7 +48,10 @@
 	    "pin": {
 		"type": "heater",
 		"port": "9",
-		"pin": "12"
+		"pin": "12",
+                "args": {
+                    "pwm": true
+                }
 	    }
         },
         {
@@ -90,7 +93,10 @@
 	    "pin": {
 		"type": "heater",
 		"port": "9",
-		"pin": "14"
+		"pin": "14",
+                "args": {
+                    "pwm": true
+                }
 	    }
         },
         {
