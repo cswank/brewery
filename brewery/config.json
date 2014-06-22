@@ -47,8 +47,8 @@
             "offCommand": "stop heating hlt",
 	    "pin": {
 		"type": "heater",
-		"port": "8",
-		"pin": "15"
+		"port": "9",
+		"pin": "12"
 	    }
         },
         {
@@ -90,7 +90,7 @@
 	    "pin": {
 		"type": "heater",
 		"port": "9",
-		"pin": "16"
+		"pin": "14"
 	    }
         },
         {
