@@ -142,31 +142,31 @@ func (r *Recipe) GetMethod(grainTemperature float64) []string {
 	volumeUnits := "gallons"
 	return []string {
 		fmt.Sprintf("fill hlt to 7.0 %s", volumeUnits),
-		fmt.Sprintf("heat hlt to %f %s", mash.StrikeTemperature, temperatureUnits),// {strike_temperature} {temperature_units}
-		fmt.Sprintf("wait for hlt temperature >= %f", mash.StrikeTemperature),//{strike_temperature}
-		fmt.Sprintf("fill tun to %f %s", mash.Volume, volumeUnits),//{mash_volume}
-		fmt.Sprintf("wait for tun volume >= %f %s", mash.Volume, volumeUnits),//{mash_volume}
+		fmt.Sprintf("heat hlt to %f %s", mash.StrikeTemperature, temperatureUnits),
+		fmt.Sprintf("wait for hlt temperature >= %f %s", mash.StrikeTemperature, volumeUnits),
+		fmt.Sprintf("fill tun to %f %s", mash.Volume, volumeUnits),
+		fmt.Sprintf("wait for tun volume >= %f %s", mash.Volume, volumeUnits),
 		"wait for user to add grains",
-		"fill hlt to 1.0 liters",
-		fmt.Sprintf("heat hlt 185 %s", temperatureUnits),
+		fmt.Sprintf("fill hlt to 1.0 %s", volumeUnits)
+		fmt.Sprintf("heat hlt to 185 %s", temperatureUnits),
 		fmt.Sprintf("wait for %f minutes", mash.Time),
-		fmt.Sprintf("fill tun to %f %s", mash.SpargeVolume, volumeUnits), //{sparge_volume} {volume_units}"
+		fmt.Sprintf("fill tun to %f %s", mash.SpargeVolume, volumeUnits),
 		"wait for 10 minutes",
 		"wait for user ready to recirculate",
 		"fill boiler",
 		"wait for user recirculated",
-		fmt.Sprintf("fill boiler to %f %s", mash.SpargeVolume, volumeUnits), //{sparge_volume} {volume_units}"
-		"heat boiler to 190 F",
-		fmt.Sprintf("wait for boiler volume >= %f %s", mash.SpargeVolume, volumeUnits),    //{sparge_volume} {volume_units}"
-		fmt.Sprintf("fill tun %f %s", mash.SecondSpargeVolume, volumeUnits),               //{second_sparge_volume} {volume_units}"
-		fmt.Sprintf("wait for tun volume >= %f %s", mash.SecondSpargeVolume, volumeUnits), //{second_sparge_volume} {volume_units}"
+		fmt.Sprintf("fill boiler to %f %s", mash.SpargeVolume, volumeUnits),
+		fmt.Sprintf("heat boiler to 190 %s", temperatureUnits)
+		fmt.Sprintf("wait for boiler volume >= %f %s", mash.SpargeVolume, volumeUnits),
+		fmt.Sprintf("fill tun %f %s", mash.SecondSpargeVolume, volumeUnits),
+		fmt.Sprintf("wait for tun volume >= %f %s", mash.SecondSpargeVolume, volumeUnits),
 		"stop heating hlt",
 		"wait for 2 minutes",
 		"wait for user ready to recirculate",
 		"fill boiler",
 		"wait for user recirculated",
 		fmt.Sprintf("fill boiler to %f %s", mash.SecondSpargeVolume+mash.SpargeVolume, volumeUnits),
-		"heat boiler to 204 F",
+		fmt.Sprintf("heat boiler to 204 %s", temperatureUnits)
 		"turn on fan",
 		fmt.Sprintf("wait for %f minutes", r.BoilTime),
 		"stop heating boiler",
