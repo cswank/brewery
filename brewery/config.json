@@ -37,7 +37,7 @@
 	    "pin": {
 		"type": "thermometer",
 		"OneWireId": "28-000002b01241",
-		"Units": "C"
+		"Units": "F"
 	    }
         },
 	{
@@ -68,7 +68,7 @@
 	    "pin": {
 		"type": "thermometer",
 		"OneWireId": "28-0000025ed750",
-		"Units": "C"
+		"Units": "F"
 	    }
         },
         {
@@ -110,7 +110,7 @@
 	    "pin": {
 		"type": "thermometer",
 		"OneWireId": "28-0000025f0aba",
-		"Units": "C"
+		"Units": "F"
 	    }
         },
         {
