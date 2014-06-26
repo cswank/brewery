@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	TOGALLONS = 0.264172
+)
+
 type Mash struct {
 	gogadgets.InputDevice
 	Volume         float64
@@ -36,7 +40,7 @@ func NewMash(config *MashConfig) (gogadgets.InputDevice, error) {
 	x := math.Pow((2.0 / g), 0.5)
 	k := (tankArea * x) / (valveArea * config.Coefficient)
 	return &Mash{
-		Units:     "L",
+		Units:     "gallons",
 		k:         k,
 		x:         x,
 		tankArea:  tankArea,
@@ -54,16 +58,24 @@ func (m *Mash) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
 }
 
 func (m *Mash) GetValue() *gogadgets.Value {
+	v := m.Volume
+	if m.Units == "gallons" {
+		v *= TOGALLONS
+	}
 	return &gogadgets.Value{
-		Value: m.Volume,
+		Value: v,
 		Units: m.Units,
 	}
 }
 
 func (m *Mash) sendCurrentVolume(startVolume float64, duration time.Duration) {
 	m.Volume = m.previousVolume + m.GetVolume(startVolume, duration.Seconds())
+	v := m.Volume
+	if m.Units == "gallons" {
+		v *= TOGALLONS
+	}
 	m.out <- gogadgets.Value{
-		Value: m.Volume,
+		Value: v,
 		Units: m.Units,
 	}
 }
@@ -90,7 +102,7 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 func (m *Mash) monitor(stop <-chan bool) {
 	startTime := time.Now()
 	interval := time.Duration(100 * time.Millisecond)
-	startVolume := m.HLTVolume * 1000.0
+	startVolume := (m.HLTVolume / TOGALLONS) * 1000.0
 	var d time.Duration
 	keepGoing := true
 	for keepGoing {

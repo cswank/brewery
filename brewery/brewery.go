@@ -45,8 +45,8 @@ func main() {
 
 	hltVolume := &brewgadgets.HLT{
 		GPIO:  poller.(gogadgets.Poller),
-		Value: 26.5,
-		Units: "liters",
+		Value: 7.0,
+		Units: "gallons",
 	}
 	hlt := &gogadgets.Gadget{
 		Location:   "hlt",
