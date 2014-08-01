@@ -9,14 +9,14 @@ import (
 /*
 Measures the volume in the boiler.
 
-Unlike the flow of water from the HLT to the mash tun,
-the source of the boilers water is the mash tun and it
+Unlike the flow of water from the HLT to the tun,
+the source of the boilers water is the tun and it
 is filled with grains.  The grains will screw with how
 fast water flows out of the mash, so I don't try to
 calculate the volume based on time (like I do for the mash
 tun volume).  For this vessel, I'll simply wait a conservative
 amount of time and declare that all the water from the mash
-is now in the volume.
+is now in the boiler.
 */
 
 type Boiler struct {
@@ -67,7 +67,7 @@ func (b *Boiler) wait(out chan<- float64) {
 }
 
 func (b *Boiler) readMessage(msg gogadgets.Message) {
-	if msg.Sender == "mash tun volume" {
+	if msg.Sender == "tun volume" {
 		b.mashVolume = msg.Value.Value.(float64)
 	} else if msg.Sender == "boiler valve" && msg.Value.Value == true {
 		go b.wait(b.value)

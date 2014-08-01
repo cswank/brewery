@@ -50,8 +50,12 @@ func (h *HLT) Start(in <-chan gogadgets.Message, out chan<- gogadgets.Value) {
 }
 
 func (h *HLT) GetValue() *gogadgets.Value {
+	v := h.Volume
+	if h.Units == "gallons" {
+		v *= TOGALLONS
+	}
 	return &gogadgets.Value{
-		Value: h.Volume,
+		Value: v,
 		Units: h.Units,
 	}
 }
@@ -72,10 +76,10 @@ func (h *HLT) wait(out chan<- float64, err chan<- error) {
 }
 
 func (h *HLT) readMessage(msg gogadgets.Message) {
-	if msg.Sender == "mash tun volume" && msg.Value.Value.(float64) > 0.0 {
+	if msg.Sender == "tun volume" && msg.Value.Value.(float64) > 0.0 {
 		h.Volume = h.startVolume - msg.Value.Value.(float64)
 		h.sendValue()
-	} else if msg.Sender == "mash tun volume" && msg.Value.Value.(float64) == 0.0 {
+	} else if msg.Sender == "tun volume" && msg.Value.Value.(float64) == 0.0 {
 		h.startVolume = h.Volume
 	}
 }

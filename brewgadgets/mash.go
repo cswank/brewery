@@ -81,7 +81,7 @@ func (m *Mash) sendCurrentVolume(startVolume float64, duration time.Duration) {
 }
 
 func (m *Mash) readMessage(msg gogadgets.Message) {
-	if msg.Sender == "mash tun valve" {
+	if msg.Sender == "tun valve" {
 		if msg.Value.Value == true {
 			m.valveStatus = true
 			m.previousVolume = m.Volume
@@ -91,7 +91,11 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 			m.valveStatus = false
 		}
 	} else if msg.Sender == "hlt volume" {
-		m.HLTVolume = msg.Value.Value.(float64)
+		v := msg.Value.Value.(float64)
+		if msg.Value.Units == "gallons" {
+			v = v / TOGALLONS
+		}
+		m.HLTVolume = v
 	} else if msg.Sender == "boiler volume" && msg.Value.Value.(float64) > 0.0 {
 		m.previousVolume = 0.0
 		m.Volume = 0.0
@@ -102,7 +106,7 @@ func (m *Mash) readMessage(msg gogadgets.Message) {
 func (m *Mash) monitor(stop <-chan bool) {
 	startTime := time.Now()
 	interval := time.Duration(100 * time.Millisecond)
-	startVolume := (m.HLTVolume / TOGALLONS) * 1000.0
+	startVolume := m.HLTVolume * 1000.0
 	var d time.Duration
 	keepGoing := true
 	for keepGoing {

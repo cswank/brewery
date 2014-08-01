@@ -28,13 +28,13 @@ func main() {
 	mashVolume, _ := brewgadgets.NewMash(config)
 
 	mash := &gogadgets.Gadget{
-		Location:   "mash tun",
+		Location:   "tun",
 		Name:       "volume",
 		Input:      mashVolume,
 		Direction:  "input",
 		OnCommand:  "n/a",
 		OffCommand: "n/a",
-		UID:        "mash tun volume",
+		UID:        "tun volume",
 	}
 
 	a.AddGadget(mash)
