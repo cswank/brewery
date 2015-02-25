@@ -1,11 +1,12 @@
 package main
 
 import (
-	"bitbucket.org/cswank/gogadgets"
-	"bitbucket.org/cswank/gogadgets/utils"
-	"bitbucket.org/cswank/brewery/brewgadgets"
 	"flag"
 	"io/ioutil"
+
+	"bitbucket.org/cswank/brewery/brewgadgets"
+	"bitbucket.org/cswank/gogadgets"
+	"bitbucket.org/cswank/gogadgets/utils"
 )
 
 var (
@@ -17,34 +18,42 @@ func main() {
 	if !utils.FileExists("/sys/bus/w1/devices/28-0000047ade8f") {
 		ioutil.WriteFile("/sys/devices/bone_capemgr.9/slots", []byte("BB-W1:00A0"), 0666)
 	}
-	
-	a := gogadgets.NewApp(*cfg)
-
-	config := &brewgadgets.MashConfig{
+	gpio, err := gogadgets.NewGPIO(&gogadgets.Pin{Port: "8", Pin: "9", Direction: "in", Edge: "rising"})
+	if err != nil {
+		panic(err)
+	}
+	mashConfig := &brewgadgets.MashConfig{
 		TankRadius:  7.5 * 2.54,
 		ValveRadius: 0.1875 * 2.54,
 		Coefficient: 0.4,
 	}
-	mashVolume, _ := brewgadgets.NewMash(config)
+	poller := gpio.(gogadgets.Poller)
+	a, err := getApp(*cfg, mashConfig, poller, nil)
+	if err != nil {
+		panic(err)
+	}
+	a.Start()
+}
+
+func getApp(cfg interface{}, mashConfig *brewgadgets.MashConfig, poller gogadgets.Poller, boilerConfig *brewgadgets.BoilerConfig) (*gogadgets.App, error) {
+	a := gogadgets.NewApp(cfg)
+
+	mashVolume, _ := brewgadgets.NewMash(mashConfig)
 
 	mash := &gogadgets.Gadget{
-		Location:   "tun",
+		Location:   "mash tun",
 		Name:       "volume",
 		Input:      mashVolume,
 		Direction:  "input",
 		OnCommand:  "n/a",
 		OffCommand: "n/a",
-		UID:        "tun volume",
+		UID:        "mash tun volume",
 	}
 
 	a.AddGadget(mash)
-	poller, err := gogadgets.NewGPIO(&gogadgets.Pin{Port: "8", Pin: "9", Direction: "in", Edge: "rising"})
-	if err != nil {
-		panic(err)
-	}
 
 	hltVolume := &brewgadgets.HLT{
-		GPIO:  poller.(gogadgets.Poller),
+		GPIO:  poller,
 		Value: 7.0,
 		Units: "gallons",
 	}
@@ -59,7 +68,10 @@ func main() {
 	}
 	a.AddGadget(hlt)
 
-	boilerVolume, _ := brewgadgets.NewBoiler()
+	boilerVolume, err := brewgadgets.NewBoiler(boilerConfig)
+	if err != nil {
+		return nil, err
+	}
 	boiler := &gogadgets.Gadget{
 		Location:   "boiler",
 		Name:       "volume",
@@ -70,5 +82,5 @@ func main() {
 		UID:        "boiler volume",
 	}
 	a.AddGadget(boiler)
-	a.Start()
+	return a, nil
 }
