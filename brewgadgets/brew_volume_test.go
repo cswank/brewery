@@ -1,10 +1,16 @@
-package brewgadgets
+package brewgadgets_test
 
 import (
-	"testing"
+	"fmt"
 	"time"
 
-	"bitbucket.org/cswank/gogadgets"
+	"bitbucket.org/cswank/brewery/brewgadgets"
+
+	"github.com/cswank/gogadgets"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
 )
 
 type FakePoller struct {
@@ -17,106 +23,233 @@ func (f *FakePoller) Wait() (bool, error) {
 	return v, nil
 }
 
-func TestFillHLT(t *testing.T) {
-	trigger := make(chan bool)
-	poller := &FakePoller{
-		trigger: trigger,
-	}
-	cfg := &BrewConfig{
-		MashRadius:      20.0,
-		MashValveRadius: 10.0,
-		Coefficient:     0.5,
-		HLTCapacity:     26.5,
-	}
-	k, area := getK(cfg)
-	bv := BrewVolume{
-		k:           k,
-		mashArea:    area,
-		hltFull:     make(chan bool),
-		HLTCapacity: 26.5,
-		poller:      poller,
-		mashStop:    make(chan bool),
-	}
+var _ = Describe("Volume", func() {
+	var (
+		trigger chan bool
+		out, in chan gogadgets.Message
+		poller  *FakePoller
+		bv      *brewgadgets.BrewVolume
+	)
 
-	out := make(chan gogadgets.Message)
-	in := make(chan gogadgets.Message)
+	BeforeEach(func() {
 
-	go bv.Start(out, in)
-
-	out <- gogadgets.Message{
-		Type:   "update",
-		Sender: "hlt valve",
-		Value: gogadgets.Value{
-			Value: true,
-		},
-	}
-
-	trigger <- true
-	msg := <-in
-	if !closeTo(msg.Value.Value.(float64), 7.0) {
-		t.Error(msg.Value)
-	}
-
-	out <- gogadgets.Message{
-		Type:   "update",
-		Sender: "mash tun valve",
-		Value: gogadgets.Value{
-			Value: true,
-		},
-	}
-
-	tunVolume := 0.0
-	hltVolume := 0.0
-	for tunVolume < 4.0 {
-		msg = <-in
-		if msg.Sender == "mash tun volume" {
-			tunVolume = msg.Value.Value.(float64)
-		} else if msg.Sender == "hlt volume" {
-			hltVolume = msg.Value.Value.(float64)
+		trigger = make(chan bool)
+		poller = &FakePoller{
+			trigger: trigger,
 		}
-	}
-
-	if !closeTo(hltVolume+tunVolume, 7.0) {
-		t.Error(msg.Value)
-	}
-
-	out <- gogadgets.Message{
-		Type:   "update",
-		Sender: "mash tun valve",
-		Value: gogadgets.Value{
-			Value: false,
-		},
-	}
-
-	//clear out all messages
-	var stop bool
-	for !stop {
-		select {
-		case msg = <-in:
-		case <-time.After(200 * time.Millisecond):
-			stop = true
+		cfg := &brewgadgets.BrewConfig{
+			MashRadius:      20.0,
+			MashValveRadius: 10.0,
+			Coefficient:     0.5,
+			HLTCapacity:     26.5,
+			Poller:          poller,
+			BoilerFillTime:  1,
 		}
-	}
 
-	out <- gogadgets.Message{
-		Type: "command",
-		Body: "update",
-	}
+		bv, _ = brewgadgets.NewBrewVolume(cfg)
 
-	v := map[string]float64{}
-	for len(v) < 3 {
-		msg = <-in
-		v[msg.Sender] = msg.Value.Value.(float64)
-	}
-	if v["boiler volume"] != 0.0 {
-		t.Error(v)
-	}
+		out = make(chan gogadgets.Message)
+		in = make(chan gogadgets.Message)
 
-	if !closeTo(v["hlt volume"]+v["mash tun volume"], 7.0) {
-		t.Error(v)
+		go bv.Start(out, in)
+
+	})
+	Describe("when all's good", func() {
+		It("does everything", func() {
+			out <- gogadgets.Message{
+				Type:   "update",
+				Sender: "hlt valve",
+				Value: gogadgets.Value{
+					Value: true,
+				},
+			}
+
+			trigger <- true
+			msg := <-in
+			Expect(msg.Value.Value.(float64)).To(BeCloseTo(7.0))
+
+			out <- gogadgets.Message{
+				Type:   "update",
+				Sender: "mash tun valve",
+				Value: gogadgets.Value{
+					Value: true,
+				},
+			}
+
+			tunVolume := 0.0
+			hltVolume := 0.0
+			for tunVolume < 4.0 {
+				msg = <-in
+				if msg.Sender == "mash tun volume" {
+					tunVolume = msg.Value.Value.(float64)
+				} else if msg.Sender == "hlt volume" {
+					hltVolume = msg.Value.Value.(float64)
+				}
+			}
+
+			Expect(hltVolume + tunVolume).To(BeCloseTo(7.0))
+
+			out <- gogadgets.Message{
+				Type:   "update",
+				Sender: "mash tun valve",
+				Value: gogadgets.Value{
+					Value: false,
+				},
+			}
+
+			//clear out all messages
+			var stop bool
+			for !stop {
+				select {
+				case msg = <-in:
+				case <-time.After(200 * time.Millisecond):
+					stop = true
+				}
+			}
+
+			out <- gogadgets.Message{
+				Type: "command",
+				Body: "update",
+			}
+
+			v := map[string]float64{}
+			for len(v) < 3 {
+				msg = <-in
+				v[msg.Sender] = msg.Value.Value.(float64)
+			}
+			Expect(v["boiler volume"]).To(Equal(0.0))
+			Expect(v["hlt volume"] + v["mash tun volume"]).To(BeCloseTo(7.0))
+
+			out <- gogadgets.Message{
+				Type:   "update",
+				Sender: "boiler valve",
+				Value: gogadgets.Value{
+					Value: true,
+				},
+			}
+
+			//wait for boiler volume update
+			tunVolume = v["mash tun volume"]
+			hltVolume = v["hlt volume"]
+			v = map[string]float64{}
+			for v["boiler volume"] == 0.0 {
+				msg = <-in
+				v[msg.Sender] = msg.Value.Value.(float64)
+			}
+
+			out <- gogadgets.Message{
+				Type:   "update",
+				Sender: "boiler valve",
+				Value: gogadgets.Value{
+					Value: false,
+				},
+			}
+
+			//clear out all messages
+			stop = false
+			for !stop {
+				select {
+				case msg = <-in:
+				case <-time.After(200 * time.Millisecond):
+					stop = true
+				}
+			}
+
+			Expect(v["boiler volume"]).To(Equal(tunVolume))
+			Expect(v["mash tun volume"]).To(Equal(0.0))
+			Expect(v["hlt volume"]).To(Equal(hltVolume))
+
+			//fill hlt again
+			out <- gogadgets.Message{
+				Type:   "update",
+				Sender: "hlt valve",
+				Value: gogadgets.Value{
+					Value: true,
+				},
+			}
+
+			trigger <- true
+			msg = <-in
+			Expect(msg.Value.Value.(float64)).To(BeCloseTo(7.0))
+			Expect(msg.Sender).To(Equal("hlt volume"))
+
+			out <- gogadgets.Message{
+				Type:   "update",
+				Sender: "mash tun valve",
+				Value: gogadgets.Value{
+					Value: true,
+				},
+			}
+
+			boilerVolume := v["boiler volume"]
+			v = map[string]float64{}
+			for v["mash tun volume"] <= 3.5 {
+				msg = <-in
+				v[msg.Sender] = msg.Value.Value.(float64)
+			}
+
+			out <- gogadgets.Message{
+				Type:   "update",
+				Sender: "mash tun valve",
+				Value: gogadgets.Value{
+					Value: false,
+				},
+			}
+
+			//clear out all messages
+			stop = false
+			for !stop {
+				select {
+				case msg = <-in:
+				case <-time.After(200 * time.Millisecond):
+					stop = true
+				}
+			}
+
+			out <- gogadgets.Message{
+				Type: "command",
+				Body: "update",
+			}
+
+			v = map[string]float64{}
+			for len(v) != 3 {
+				msg = <-in
+				v[msg.Sender] = msg.Value.Value.(float64)
+			}
+
+			Expect(v["hlt volume"] + v["mash tun volume"]).To(BeCloseTo(7.0))
+			Expect(v["boiler volume"]).To(Equal(boilerVolume))
+		})
+	})
+})
+
+type step struct {
+}
+
+type closeTo struct {
+	expected float64
+}
+
+func BeCloseTo(expected interface{}) types.GomegaMatcher {
+	return &closeTo{
+		expected: expected.(float64),
 	}
 }
 
-func closeTo(val, expected float64) bool {
-	return expected-0.05 <= val && val <= expected+0.05
+func (c *closeTo) Match(actual interface{}) (bool, error) {
+	val := actual.(float64)
+	a := c.expected-0.05 <= val && val <= c.expected+0.05
+	var err error
+	if !a {
+		err = fmt.Errorf("%d is not close to %d", val, c.expected)
+	}
+	return a, err
+}
+
+func (c *closeTo) FailureMessage(actual interface{}) string {
+	return fmt.Sprintf("Expected\n\t%#v\nto be close to\n\t%#v", actual, c.expected)
+}
+
+func (c *closeTo) NegatedFailureMessage(actual interface{}) (message string) {
+	return fmt.Sprintf("Expected\n\t%#v\nnot to be close to\n\t%#v", actual, c.expected)
 }
