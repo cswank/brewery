@@ -1,10 +1,18 @@
-package recipes
+package main
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+
+	"gopkg.in/alecthomas/kingpin.v2"
+)
+
+var (
+	name = kingpin.Flag("name", "the name of the brewtoad recipe").Short('n').String()
+	temp = kingpin.Flag("temperature", "the temperature of the grains (F)").Short('t').Float()
 )
 
 type Fermentable struct {
@@ -52,6 +60,20 @@ type Mash struct {
 	Time               float64
 	SpargeVolume       float64
 	SecondSpargeVolume float64
+}
+
+func main() {
+	kingpin.Parse()
+	r, err := NewRecipe(*name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	m := r.GetMethod(*temp)
+	fmt.Println("[")
+	for _, step := range m {
+		fmt.Printf("  %s,\n", step)
+	}
+	fmt.Println("]")
 }
 
 func NewRecipe(name string) (r *Recipe, err error) {
@@ -114,11 +136,11 @@ func (r *Recipe) getMashTime() (t float64) {
 
 func (r *Recipe) getStrikeTemperature(grainTemperature float64) float64 {
 	targetTemperature := r.getTargetTemperature()
-	return (0.2 * r.WaterRatio) * (targetTemperature - grainTemperature) + targetTemperature
+	return (0.2*r.WaterRatio)*(targetTemperature-grainTemperature) + targetTemperature
 }
 
 func (r *Recipe) getInfusionVolume(initialTemperature, targetTemperature, volume, grainWeight, waterTemperature, mashTemperature float64) float64 {
-	return (targetTemperature - initialTemperature) * ( 0.2 * grainWeight + volume) / (waterTemperature - targetTemperature)
+	return (targetTemperature - initialTemperature) * (0.2*grainWeight + volume) / (waterTemperature - targetTemperature)
 }
 
 func (r *Recipe) getMashVolume(grainWeight float64) float64 {
@@ -136,18 +158,18 @@ func (r *Recipe) getSpargeVolume(mashVolume, grainWeight float64) float64 {
 	return volume + mashVolume
 }
 
- jfunc (r *Recipe) GetMethod(grainTemperature float64) []string {
+func (r *Recipe) GetMethod(grainTemperature float64) []string {
 	mash := r.getMash(grainTemperature)
 	temperatureUnits := "F"
 	volumeUnits := "gallons"
-	return []string {
+	return []string{
 		fmt.Sprintf("fill hlt to 7.0 %s", volumeUnits),
 		fmt.Sprintf("heat hlt to %f %s", mash.StrikeTemperature, temperatureUnits),
 		fmt.Sprintf("wait for hlt temperature >= %f %s", mash.StrikeTemperature, volumeUnits),
 		fmt.Sprintf("fill tun to %f %s", mash.Volume, volumeUnits),
 		fmt.Sprintf("wait for tun volume >= %f %s", mash.Volume, volumeUnits),
 		"wait for user to add grains",
-		fmt.Sprintf("fill hlt to 7.0 %s", volumeUnits)
+		fmt.Sprintf("fill hlt to 7.0 %s", volumeUnits),
 		fmt.Sprintf("heat hlt to 185 %s", temperatureUnits),
 		fmt.Sprintf("wait for %f minutes", mash.Time),
 		fmt.Sprintf("fill tun to %f %s", mash.SpargeVolume, volumeUnits),
@@ -156,7 +178,7 @@ func (r *Recipe) getSpargeVolume(mashVolume, grainWeight float64) float64 {
 		"fill boiler",
 		"wait for user recirculated",
 		fmt.Sprintf("fill boiler to %f %s", mash.SpargeVolume, volumeUnits),
-		fmt.Sprintf("heat boiler to 190 %s", temperatureUnits)
+		fmt.Sprintf("heat boiler to 190 %s", temperatureUnits),
 		fmt.Sprintf("wait for boiler volume >= %f %s", mash.SpargeVolume, volumeUnits),
 		fmt.Sprintf("fill tun to %f %s", mash.SecondSpargeVolume, volumeUnits),
 		fmt.Sprintf("wait for tun volume >= %f %s", mash.SecondSpargeVolume, volumeUnits),
@@ -166,7 +188,7 @@ func (r *Recipe) getSpargeVolume(mashVolume, grainWeight float64) float64 {
 		"fill boiler",
 		"wait for user recirculated",
 		fmt.Sprintf("fill boiler to %f %s", mash.SecondSpargeVolume+mash.SpargeVolume, volumeUnits),
-		fmt.Sprintf("heat boiler to 204 %s", temperatureUnits)
+		fmt.Sprintf("heat boiler to 204 %s", temperatureUnits),
 		"turn on fan",
 		fmt.Sprintf("wait for %f minutes", r.BoilTime),
 		"stop heating boiler",
