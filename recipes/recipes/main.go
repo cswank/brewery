@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"encoding/json"
 
 	"bitbucket.org/cswank/brewery/recipes"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -20,9 +21,6 @@ func main() {
 		log.Fatal(err)
 	}
 	m := r.GetMethod(*temp)
-	fmt.Println("[")
-	for _, step := range m {
-		fmt.Printf("  %s,\n", step)
-	}
-	fmt.Println("]")
+	b, _ := json.MarshalIndent(m, "", "  ")
+	fmt.Println(string(b))
 }

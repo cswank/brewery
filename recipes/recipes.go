@@ -143,7 +143,7 @@ func (r *Recipe) GetMethod(grainTemperature float64) []string {
 	return []string{
 		fmt.Sprintf("fill hlt to 7.0 %s", volumeUnits),
 		fmt.Sprintf("heat hlt to %f %s", mash.StrikeTemperature, temperatureUnits),
-		fmt.Sprintf("wait for hlt temperature >= %f %s", mash.StrikeTemperature, volumeUnits),
+		fmt.Sprintf("wait for hlt temperature >= %f %s", mash.StrikeTemperature, temperatureUnits),
 		fmt.Sprintf("fill tun to %f %s", mash.Volume, volumeUnits),
 		fmt.Sprintf("wait for tun volume >= %f %s", mash.Volume, volumeUnits),
 		"wait for user to add grains",
