@@ -1,18 +1,10 @@
-package main
+package recipes
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
-
-	"gopkg.in/alecthomas/kingpin.v2"
-)
-
-var (
-	name = kingpin.Flag("name", "the name of the brewtoad recipe").Short('n').String()
-	temp = kingpin.Flag("temperature", "the temperature of the grains (F)").Short('t').Float()
 )
 
 type Fermentable struct {
@@ -47,9 +39,9 @@ type Recipe struct {
 	BoilSize     float64       `json:"boil_size"`
 	BoilTime     float64       `json:"boil_time"`
 	Efficiency   float64       `json:"efficiency"`
-	Fermentables []Fermentable `json:"ordered_recipe_fermentables"`
+	Fermentables []Fermentable `json:"recipe_fermentables"`
 	WaterRatio   float64
-	Hops         []Hop      `json:"ordered_recipe_hops"`
+	Hops         []Hop      `json:"recipe_hops"`
 	Yeasts       []Yeast    `json:"recipe_yeasts"`
 	MashSteps    []MashStep `json:"recipe_mash_steps"`
 }
@@ -60,20 +52,6 @@ type Mash struct {
 	Time               float64
 	SpargeVolume       float64
 	SecondSpargeVolume float64
-}
-
-func main() {
-	kingpin.Parse()
-	r, err := NewRecipe(*name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	m := r.GetMethod(*temp)
-	fmt.Println("[")
-	for _, step := range m {
-		fmt.Printf("  %s,\n", step)
-	}
-	fmt.Println("]")
 }
 
 func NewRecipe(name string) (r *Recipe, err error) {

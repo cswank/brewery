@@ -34,7 +34,7 @@
     "updated_at":"2013-12-18T21:05:43Z",
     "view_count":0,
     "has_activity":true,
-    "ordered_recipe_fermentables":[
+    "recipe_fermentables":[
         {
             "amount":7.9999904859952,
             "amount_id":592585,
@@ -112,7 +112,7 @@
             "updated_at":"2013-11-21T13:06:47Z"
         }
     ],
-    "ordered_recipe_hops":[
+    "recipe_hops":[
         {
             "alpha":14.0,
             "amount":1.00000107871125,
