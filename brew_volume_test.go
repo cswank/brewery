@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"bitbucket.org/cswank/brewery/brewgadgets"
-
+	"github.com/cswank/brewery"
 	"github.com/cswank/gogadgets"
 
 	. "github.com/onsi/ginkgo"
@@ -28,7 +27,7 @@ var _ = Describe("Volume", func() {
 		trigger chan bool
 		out, in chan gogadgets.Message
 		poller  *FakePoller
-		bv      *brewgadgets.BrewVolume
+		bv      *brewery.BrewVolume
 	)
 
 	BeforeEach(func() {
@@ -37,7 +36,7 @@ var _ = Describe("Volume", func() {
 		poller = &FakePoller{
 			trigger: trigger,
 		}
-		cfg := &brewgadgets.BrewConfig{
+		cfg := &brewery.BrewConfig{
 			MashRadius:      20.0,
 			MashValveRadius: 10.0,
 			Coefficient:     0.5,
@@ -46,7 +45,7 @@ var _ = Describe("Volume", func() {
 			BoilerFillTime:  1,
 		}
 
-		bv, _ = brewgadgets.NewBrewVolume(cfg)
+		bv, _ = brewery.NewBrewVolume(cfg)
 
 		out = make(chan gogadgets.Message)
 		in = make(chan gogadgets.Message)
@@ -56,8 +55,9 @@ var _ = Describe("Volume", func() {
 		<-in
 		<-in
 		<-in
-
+		<-in
 	})
+
 	Describe("when all's good", func() {
 		It("does everything", func() {
 			out <- gogadgets.Message{
@@ -91,8 +91,6 @@ var _ = Describe("Volume", func() {
 				}
 			}
 
-			Expect(hltVolume + tunVolume).To(BeCloseTo(7.0))
-
 			out <- gogadgets.Message{
 				Type:   "update",
 				Sender: "tun valve",
@@ -101,11 +99,13 @@ var _ = Describe("Volume", func() {
 				},
 			}
 
+			Expect(hltVolume + tunVolume).To(BeCloseTo(7.0))
+
 			//clear out all messages
 			var stop bool
 			for !stop {
 				select {
-				case msg = <-in:
+				case <-in:
 				case <-time.After(200 * time.Millisecond):
 					stop = true
 				}
@@ -117,10 +117,11 @@ var _ = Describe("Volume", func() {
 			}
 
 			v := map[string]float64{}
-			for len(v) < 3 {
+			for len(v) < 4 {
 				msg = <-in
 				v[msg.Sender] = msg.Value.Value.(float64)
 			}
+
 			Expect(v["boiler volume"]).To(Equal(0.0))
 			Expect(v["hlt volume"] + v["tun volume"]).To(BeCloseTo(7.0))
 
@@ -132,9 +133,10 @@ var _ = Describe("Volume", func() {
 				},
 			}
 
-			//wait for boiler volume update
 			tunVolume = v["tun volume"]
 			hltVolume = v["hlt volume"]
+
+			//wait for boiler volume update
 			v = map[string]float64{}
 			for v["boiler volume"] == 0.0 {
 				msg = <-in
@@ -161,7 +163,6 @@ var _ = Describe("Volume", func() {
 
 			Expect(v["boiler volume"]).To(Equal(tunVolume))
 			Expect(v["tun volume"]).To(Equal(0.0))
-			Expect(v["hlt volume"]).To(Equal(hltVolume))
 
 			//fill hlt again
 			out <- gogadgets.Message{
@@ -216,13 +217,51 @@ var _ = Describe("Volume", func() {
 			}
 
 			v = map[string]float64{}
-			for len(v) != 3 {
+			for len(v) != 4 {
 				msg = <-in
 				v[msg.Sender] = msg.Value.Value.(float64)
 			}
 
 			Expect(v["hlt volume"] + v["tun volume"]).To(BeCloseTo(7.0))
+			Expect(v["hlt volume"]).To(BeNumerically(">", 0.0))
 			Expect(v["boiler volume"]).To(Equal(boilerVolume))
+			Expect(v["carboy volume"]).To(Equal(0.0))
+
+			//this triggers the system to put all the boiler
+			//volume in the carboy
+			out <- gogadgets.Message{
+				Type:   "update",
+				Sender: "carboy pump",
+				Value: gogadgets.Value{
+					Value: false,
+				},
+			}
+
+			//clear out all messages
+			stop = false
+			for !stop {
+				select {
+				case msg = <-in:
+				case <-time.After(200 * time.Millisecond):
+					stop = true
+				}
+			}
+
+			out <- gogadgets.Message{
+				Type: "command",
+				Body: "update",
+			}
+
+			v = map[string]float64{}
+			for len(v) != 4 {
+				msg = <-in
+				v[msg.Sender] = msg.Value.Value.(float64)
+			}
+
+			Expect(v["hlt volume"] + v["tun volume"]).To(BeCloseTo(7.0))
+			Expect(v["hlt volume"]).To(BeNumerically(">", 0.0))
+			Expect(v["boiler volume"]).To(Equal(0.0))
+			Expect(v["carboy volume"]).To(Equal(boilerVolume))
 		})
 	})
 })

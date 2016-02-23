@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"io/ioutil"
+	"log"
 
 	"github.com/cswank/brewery"
 	"github.com/cswank/gogadgets"
 	"github.com/cswank/gogadgets/utils"
+	"github.com/kelseyhightower/envconfig"
 )
 
 var (
@@ -15,30 +17,45 @@ var (
 
 func main() {
 	flag.Parse()
-	if !utils.FileExists("/sys/bus/w1/devices/28-0000047ade8f") {
-		ioutil.WriteFile("/sys/devices/bone_capemgr.9/slots", []byte("BB-W1:00A0"), 0666)
+	var brewCfg brewery.BrewConfig
+	if err := envconfig.Process("myapp", &brewCfg); err != nil {
+		log.Fatal(err)
 	}
 
-	pin := &gogadgets.Pin{Port: "8", Pin: "9", Direction: "in", Edge: "rising"}
-	gpio, err := gogadgets.NewGPIO(pin)
-	if err != nil {
-		panic(err)
-	}
+	checkW1()
 
-	brewCfg := &brewery.BrewConfig{
-		MashRadius:      7.5 * 2.54,
-		MashValveRadius: 0.1875 * 2.54,
-		HLTCapacity:     26.5,
-		Coefficient:     0.4,
-		BoilerFillTime:  60 * 5,
-		Poller:          gpio.(gogadgets.Poller),
-	}
+	brewCfg.Poller = getPoller(brewCfg)
 
-	a, err := getApp(*cfg, brewCfg)
+	a, err := getApp(*cfg, &brewCfg)
 	if err != nil {
 		panic(err)
 	}
 	a.Start()
+}
+
+//gpio for the float switch at the top of my hlt.  When
+//it is triggered I know how much water is in the container.
+func getPoller(cfg brewery.BrewConfig) gogadgets.Poller {
+	pin := &gogadgets.Pin{
+		Port:      cfg.FloatSwitchPort,
+		Pin:       cfg.FloatSwitchPin,
+		Direction: "in",
+		Edge:      "rising",
+	}
+
+	gpio, err := gogadgets.NewGPIO(pin)
+	if err != nil {
+		panic(err)
+	}
+	return gpio.(gogadgets.Poller)
+}
+
+//I am too lazy to load the BB-W1 device tree overlay the right way, which would
+//be to add it to uEnv.txt (which is a config file for u-boot).
+func checkW1() {
+	if !utils.FileExists("/sys/bus/w1/devices/28-0000047ade8f") {
+		ioutil.WriteFile("/sys/devices/bone_capemgr.9/slots", []byte("BB-W1:00A0"), 0666)
+	}
 }
 
 func getApp(cfg interface{}, brewCfg *brewery.BrewConfig) (*gogadgets.App, error) {

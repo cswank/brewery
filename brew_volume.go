@@ -13,11 +13,37 @@ const (
 	TOGALLONS = 0.264172
 )
 
+var (
+	all = []string{"hlt", "tun", "boiler", "carboy"}
+)
+
+type volumeGetter func() float64
+
+//BrewVolume keeps track of the volume in all three tanks
+//(hlt, mash tun, and boiler) in by brew system.  It knows
+//how much water is in the hlt when the float switch (which
+//is watched by BrewVolume.poller) it triggered.  It waits
+//for messages from one of the three solenoid valves.  If
+//the valve that dumps water from the hlt to the mash tun
+//it activated then it uses and equation of water flowing
+//through an orifice to determine the volume at a given time.
+//This allows the system to fill the mash tun with a specific
+//amount of water.  Once the mash tun has water in it, then
+//if the valve that controls the water flow the boiler is
+//activated then a different strategy is used.  Since the
+//mash tun is full of grains the water flow rate is unpredictable.
+//This system just waits for a safe amount of time (BrewVolume.boilerFillTime)
+//to say all the water that used to be in the mash tun is
+//now in the boiler.  The boiler drains into the fermenter
+//using a pump.  BrewVolume waits for a message indicating
+//the pump is turned off then it puts all of the boiler volume
+//in the fermenter.
 type BrewVolume struct {
-	hltCapacity    float64
 	hltVolume      float64
-	mashVolume     float64
+	tunVolume      float64
 	boilerVolume   float64
+	carboyVolume   float64
+	hltCapacity    float64
 	hltFull        chan bool
 	mashArea       float64
 	mashStop       chan bool
@@ -28,6 +54,7 @@ type BrewVolume struct {
 	k              float64
 	boilerFillTime time.Duration
 	listening      bool
+	volumes        map[string]volumeGetter
 }
 
 type BrewConfig struct {
@@ -37,11 +64,13 @@ type BrewConfig struct {
 	HLTCapacity     float64
 	Poller          gogadgets.Poller
 	BoilerFillTime  int //time to drain the mash in seconds
+	FloatSwitchPin  string
+	FloatSwitchPort string
 }
 
 func NewBrewVolume(cfg *BrewConfig) (*BrewVolume, error) {
 	k, mashArea := getK(cfg)
-	return &BrewVolume{
+	b := &BrewVolume{
 		hltFull:        make(chan bool),
 		mashStop:       make(chan bool),
 		boilStop:       make(chan bool),
@@ -50,7 +79,16 @@ func NewBrewVolume(cfg *BrewConfig) (*BrewVolume, error) {
 		k:              k,
 		poller:         cfg.Poller,
 		boilerFillTime: time.Duration(cfg.BoilerFillTime) * time.Second,
-	}, nil
+	}
+
+	b.volumes = map[string]volumeGetter{
+		"hlt":    b.getHLTVolume,
+		"tun":    b.getTunVolume,
+		"boiler": b.getBoilerVolume,
+		"carboy": b.getCarboyVolume,
+	}
+
+	return b, nil
 }
 
 func getK(cfg *BrewConfig) (float64, float64) {
@@ -63,7 +101,7 @@ func getK(cfg *BrewConfig) (float64, float64) {
 
 func (b *BrewVolume) Start(input <-chan gogadgets.Message, out chan<- gogadgets.Message) {
 	b.out = out
-	b.sendUpdates()
+	b.sendUpdates(all)
 
 	for {
 		select {
@@ -85,7 +123,7 @@ func (b *BrewVolume) GetUID() string {
 
 func (b *BrewVolume) readMessage(msg gogadgets.Message) {
 	if msg.Type == "command" && msg.Body == "update" {
-		b.sendUpdates()
+		b.sendUpdates(all)
 	} else if msg.Type == "update" && msg.Sender == "hlt valve" && msg.Value.Value == true {
 		go b.waitForFloatSwitch()
 	} else if msg.Type == "update" && msg.Sender == "tun valve" && msg.Value.Value == true {
@@ -96,13 +134,15 @@ func (b *BrewVolume) readMessage(msg gogadgets.Message) {
 		go b.updateBoilerVolume()
 	} else if msg.Type == "update" && msg.Sender == "boiler valve" && msg.Value.Value == false && b.listening {
 		b.boilStop <- true
+	} else if msg.Type == "update" && msg.Sender == "carboy pump" && msg.Value.Value == false {
+		b.updateCarboyVolume()
 	}
 }
 
 func (b *BrewVolume) updateMashTunVolume() {
 	v := map[string]float64{
-		"mash tun volume": b.mashVolume,
-		"hlt volume":      b.hltVolume,
+		"tun volume": b.tunVolume,
+		"hlt volume": b.hltVolume,
 	}
 	ts := time.Now()
 	for {
@@ -126,19 +166,25 @@ func (b *BrewVolume) updateBoilerVolume() {
 		case <-b.boilStop:
 			b.listening = false
 		case <-time.After(b.boilerFillTime): //todo make this time part of the config
-			b.boilerVolume = b.mashVolume
-			b.mashVolume = 0.0
-			b.sendUpdates()
+			b.boilerVolume = b.tunVolume
+			b.tunVolume = 0.0
+			b.sendUpdates([]string{"tun", "boiler"})
 			b.listening = false
 		}
 	}
 }
 
-func (b *BrewVolume) sendUpdates() {
+func (b *BrewVolume) updateCarboyVolume() {
+	b.carboyVolume = b.boilerVolume
+	b.boilerVolume = 0.0
+	b.sendUpdates([]string{"boiler", "carboy"})
+}
+
+func (b *BrewVolume) sendUpdates(tanks []string) {
 	b.lock.Lock()
-	b.sendUpdate("hlt", "volume", b.hltVolume)
-	b.sendUpdate("tun", "volume", b.mashVolume)
-	b.sendUpdate("boiler", "volume", b.boilerVolume)
+	for _, t := range tanks {
+		b.sendUpdate(t, "volume", b.volumes[t]())
+	}
 	b.lock.Unlock()
 }
 
@@ -166,13 +212,13 @@ func (b *BrewVolume) getNewVolumes(start time.Time, startingVolumes map[string]f
 	defer b.lock.Unlock()
 	b.calculateVolumes(d, startingVolumes)
 	b.sendUpdate("hlt", "volume", b.hltVolume)
-	b.sendUpdate("tun", "volume", b.mashVolume)
+	b.sendUpdate("tun", "volume", b.tunVolume)
 }
 
 func (b *BrewVolume) calculateVolumes(duration time.Duration, startVolumes map[string]float64) {
 	v := b.newVolume(startVolumes["hlt volume"], duration.Seconds())
 	b.hltVolume = startVolumes["hlt volume"] - v
-	b.mashVolume = startVolumes["mash tun volume"] + v
+	b.tunVolume = startVolumes["tun volume"] + v
 }
 
 func (b *BrewVolume) newVolume(startVolume, elapsedTime float64) float64 {
@@ -197,4 +243,20 @@ func (b *BrewVolume) updateHLTVolume(full bool) {
 	defer b.lock.Unlock()
 	b.hltVolume = b.hltCapacity
 	b.sendUpdate("hlt", "volume", b.hltVolume)
+}
+
+func (b *BrewVolume) getHLTVolume() float64 {
+	return b.hltVolume
+}
+
+func (b *BrewVolume) getTunVolume() float64 {
+	return b.tunVolume
+}
+
+func (b *BrewVolume) getBoilerVolume() float64 {
+	return b.boilerVolume
+}
+
+func (b *BrewVolume) getCarboyVolume() float64 {
+	return b.carboyVolume
 }
