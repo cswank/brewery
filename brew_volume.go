@@ -1,7 +1,6 @@
 package brewery
 
 import (
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -16,8 +15,6 @@ const (
 var (
 	all = []string{"hlt", "tun", "boiler", "carboy"}
 )
-
-type volumeGetter func() float64
 
 //BrewVolume keeps track of the volume in all three tanks
 //(hlt, mash tun, and boiler) in by brew system.  It knows
@@ -39,10 +36,7 @@ type volumeGetter func() float64
 //the pump is turned off then it puts all of the boiler volume
 //in the fermenter.
 type BrewVolume struct {
-	hltVolume      float64
-	tunVolume      float64
-	boilerVolume   float64
-	carboyVolume   float64
+	volumes        map[string]float64
 	hltCapacity    float64
 	hltFull        chan bool
 	mashArea       float64
@@ -54,7 +48,6 @@ type BrewVolume struct {
 	k              float64
 	boilerFillTime time.Duration
 	listening      bool
-	volumes        map[string]volumeGetter
 }
 
 type BrewConfig struct {
@@ -71,6 +64,12 @@ type BrewConfig struct {
 func NewBrewVolume(cfg *BrewConfig) (*BrewVolume, error) {
 	k, mashArea := getK(cfg)
 	b := &BrewVolume{
+		volumes: map[string]float64{
+			"hlt":    0.0,
+			"tun":    0.0,
+			"boiler": 0.0,
+			"carboy": 0.0,
+		},
 		hltFull:        make(chan bool),
 		mashStop:       make(chan bool),
 		boilStop:       make(chan bool),
@@ -79,13 +78,6 @@ func NewBrewVolume(cfg *BrewConfig) (*BrewVolume, error) {
 		k:              k,
 		poller:         cfg.Poller,
 		boilerFillTime: time.Duration(cfg.BoilerFillTime) * time.Second,
-	}
-
-	b.volumes = map[string]volumeGetter{
-		"hlt":    b.getHLTVolume,
-		"tun":    b.getTunVolume,
-		"boiler": b.getBoilerVolume,
-		"carboy": b.getCarboyVolume,
 	}
 
 	return b, nil
@@ -141,8 +133,8 @@ func (b *BrewVolume) readMessage(msg gogadgets.Message) {
 
 func (b *BrewVolume) updateMashTunVolume() {
 	v := map[string]float64{
-		"tun volume": b.tunVolume,
-		"hlt volume": b.hltVolume,
+		"tun": b.volumes["tun"],
+		"hlt": b.volumes["hlt"],
 	}
 	ts := time.Now()
 	for {
@@ -166,8 +158,8 @@ func (b *BrewVolume) updateBoilerVolume() {
 		case <-b.boilStop:
 			b.listening = false
 		case <-time.After(b.boilerFillTime): //todo make this time part of the config
-			b.boilerVolume = b.tunVolume
-			b.tunVolume = 0.0
+			b.volumes["boiler"] = b.volumes["tun"]
+			b.volumes["tun"] = 0.0
 			b.sendUpdates([]string{"tun", "boiler"})
 			b.listening = false
 		}
@@ -175,29 +167,29 @@ func (b *BrewVolume) updateBoilerVolume() {
 }
 
 func (b *BrewVolume) updateCarboyVolume() {
-	b.carboyVolume = b.boilerVolume
-	b.boilerVolume = 0.0
+	b.volumes["carboy"] = b.volumes["boiler"]
+	b.volumes["boiler"] = 0.0
 	b.sendUpdates([]string{"boiler", "carboy"})
 }
 
 func (b *BrewVolume) sendUpdates(tanks []string) {
 	b.lock.Lock()
 	for _, t := range tanks {
-		b.sendUpdate(t, "volume", b.volumes[t]())
+		b.sendUpdate(t)
 	}
 	b.lock.Unlock()
 }
 
-func (b *BrewVolume) sendUpdate(location, name string, value float64) {
+func (b *BrewVolume) sendUpdate(location string) {
 	b.out <- gogadgets.Message{
 		UUID:      gogadgets.GetUUID(),
-		Sender:    fmt.Sprintf("%s %s", location, name),
+		Sender:    "brew volume",
 		Location:  location,
-		Name:      name,
+		Name:      "volume",
 		Type:      "update",
 		Timestamp: time.Now().UTC(),
 		Value: gogadgets.Value{
-			Value: value * TOGALLONS,
+			Value: b.volumes[location] * TOGALLONS,
 			Units: "gallons",
 		},
 		Info: gogadgets.Info{
@@ -211,14 +203,14 @@ func (b *BrewVolume) getNewVolumes(start time.Time, startingVolumes map[string]f
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	b.calculateVolumes(d, startingVolumes)
-	b.sendUpdate("hlt", "volume", b.hltVolume)
-	b.sendUpdate("tun", "volume", b.tunVolume)
+	b.sendUpdate("hlt")
+	b.sendUpdate("tun")
 }
 
 func (b *BrewVolume) calculateVolumes(duration time.Duration, startVolumes map[string]float64) {
-	v := b.newVolume(startVolumes["hlt volume"], duration.Seconds())
-	b.hltVolume = startVolumes["hlt volume"] - v
-	b.tunVolume = startVolumes["tun volume"] + v
+	v := b.newVolume(startVolumes["hlt"], duration.Seconds())
+	b.volumes["hlt"] = startVolumes["hlt"] - v
+	b.volumes["tun"] = startVolumes["tun"] + v
 }
 
 func (b *BrewVolume) newVolume(startVolume, elapsedTime float64) float64 {
@@ -241,22 +233,6 @@ func (b *BrewVolume) updateHLTVolume(full bool) {
 	}
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	b.hltVolume = b.hltCapacity
-	b.sendUpdate("hlt", "volume", b.hltVolume)
-}
-
-func (b *BrewVolume) getHLTVolume() float64 {
-	return b.hltVolume
-}
-
-func (b *BrewVolume) getTunVolume() float64 {
-	return b.tunVolume
-}
-
-func (b *BrewVolume) getBoilerVolume() float64 {
-	return b.boilerVolume
-}
-
-func (b *BrewVolume) getCarboyVolume() float64 {
-	return b.carboyVolume
+	b.volumes["hlt"] = b.hltCapacity
+	b.sendUpdate("hlt")
 }

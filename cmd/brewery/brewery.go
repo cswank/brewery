@@ -18,7 +18,7 @@ var (
 func main() {
 	flag.Parse()
 	var brewCfg brewery.BrewConfig
-	if err := envconfig.Process("myapp", &brewCfg); err != nil {
+	if err := envconfig.Process("brewery", &brewCfg); err != nil {
 		log.Fatal(err)
 	}
 
@@ -61,12 +61,11 @@ func checkW1() {
 func getApp(cfg interface{}, brewCfg *brewery.BrewConfig) (*gogadgets.App, error) {
 	a := gogadgets.NewApp(cfg)
 
-	vol, err := brewery.NewBrewVolume(brewCfg)
-	if err != nil {
-		return nil, err
-	}
+	// vol, err := brewery.NewBrewVolume(brewCfg)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	a.AddGadget(vol)
-
+	//a.AddGadget(vol)
 	return a, nil
 }
