@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	cfg = flag.String("c", "", "Path to the config json file")
+	cfg = flag.String("c", "", "Path to the gogadgets config json file")
 )
 
 func main() {
@@ -23,31 +23,11 @@ func main() {
 	}
 
 	checkW1()
-
-	brewCfg.Poller = getPoller(brewCfg)
-
 	a, err := getApp(*cfg, &brewCfg)
 	if err != nil {
 		panic(err)
 	}
 	a.Start()
-}
-
-//gpio for the float switch at the top of my hlt.  When
-//it is triggered I know how much water is in the container.
-func getPoller(cfg brewery.BrewConfig) gogadgets.Poller {
-	pin := &gogadgets.Pin{
-		Port:      cfg.FloatSwitchPort,
-		Pin:       cfg.FloatSwitchPin,
-		Direction: "in",
-		Edge:      "rising",
-	}
-
-	gpio, err := gogadgets.NewGPIO(pin)
-	if err != nil {
-		panic(err)
-	}
-	return gpio.(gogadgets.Poller)
 }
 
 //I am too lazy to load the BB-W1 device tree overlay the right way, which would
@@ -61,11 +41,12 @@ func checkW1() {
 func getApp(cfg interface{}, brewCfg *brewery.BrewConfig) (*gogadgets.App, error) {
 	a := gogadgets.NewApp(cfg)
 
-	// vol, err := brewery.NewBrewVolume(brewCfg)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	hlt, tun, boiler, carboy := brewery.NewBrewery(brewCfg)
 
-	//a.AddGadget(vol)
+	a.AddGadget(hlt)
+	a.AddGadget(tun)
+	a.AddGadget(boiler)
+	a.AddGadget(carboy)
+
 	return a, nil
 }
