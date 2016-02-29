@@ -8,9 +8,9 @@ import (
 )
 
 type BrewConfig struct {
-	TunRadius       float64
+	HLTRadius       float64
 	TunValveRadius  float64
-	Coefficient     float64
+	HLTCoefficient  float64
 	HLTCapacity     float64
 	Poller          gogadgets.Poller
 	BoilerFillTime  int //time to drain the mash in seconds
@@ -45,7 +45,8 @@ func NewBrewery(cfg *BrewConfig) (*HLT, *Tun, *Boiler, *Carboy) {
 
 func getTun(cfg *BrewConfig) (*Tun, error) {
 	tunCfg := &TunConfig{
-		TunRadius:      cfg.TunRadius,
+		Coefficient:    cfg.HLTCoefficient,
+		HLTRadius:      cfg.HLTRadius,
 		TunValveRadius: cfg.TunValveRadius,
 	}
 	return NewTun(tunCfg)

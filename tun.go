@@ -1,6 +1,7 @@
 package brewery
 
 import (
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -37,7 +38,7 @@ func (t *timer) Since() time.Duration {
 
 type Tun struct {
 	volumes   map[string]float64
-	tunArea   float64
+	hltArea   float64
 	stop      chan bool
 	out       chan<- gogadgets.Message
 	k         float64
@@ -49,16 +50,15 @@ type Tun struct {
 }
 
 type TunConfig struct {
-	TunRadius      float64
+	HLTRadius      float64
 	TunValveRadius float64
 	Coefficient    float64
-	HLTCapacity    float64
 	After          Afterer
 	Timer          Timer
 }
 
 func getK(c *TunConfig) (float64, float64) {
-	hltArea := math.Pi * math.Pow(c.TunRadius, 2)
+	hltArea := math.Pi * math.Pow(c.HLTRadius, 2)
 	valveArea := math.Pi * math.Pow(c.TunValveRadius, 2)
 	g := 9.806 * 100.0 //centimeters
 	x := math.Pow((2.0 / g), 0.5)
@@ -66,7 +66,8 @@ func getK(c *TunConfig) (float64, float64) {
 }
 
 func NewTun(cfg *TunConfig) (*Tun, error) {
-	k, tunArea := getK(cfg)
+	k, hltArea := getK(cfg)
+	fmt.Println("tun cfg", cfg, k, hltArea)
 	if cfg.After == nil {
 		cfg.After = time.After
 	}
@@ -75,12 +76,11 @@ func NewTun(cfg *TunConfig) (*Tun, error) {
 	}
 	return &Tun{
 		volumes: map[string]float64{
-			"hlt":    0.0,
-			"tun":    0.0,
-			"boiler": 0.0,
+			"hlt": 0.0,
+			"tun": 0.0,
 		},
 		stop:    make(chan bool),
-		tunArea: tunArea,
+		hltArea: hltArea,
 		k:       k,
 		after:   cfg.After,
 		timer:   cfg.Timer,
@@ -126,25 +126,29 @@ func (t *Tun) readMessage(msg gogadgets.Message) {
 
 func (t *Tun) fill() {
 	t.filling = true
+	t.lock.Lock()
 	v := map[string]float64{
 		"tun": t.volumes["tun"],
 		"hlt": t.volumes["hlt"],
 	}
+	t.lock.Unlock()
 	t.timer.Start()
+	var i int
 	for {
 		select {
 		case <-t.stop:
 			t.filling = false
-			t.getNewVolumes(v)
+			t.getNewVolume(v, 0)
 			return
 		case <-t.after(100 * time.Millisecond):
-			t.getNewVolumes(v)
+			t.getNewVolume(v, i)
+			i++
 		}
 	}
 }
 
 func (t *Tun) sendUpdate() {
-	t.out <- gogadgets.Message{
+	msg := gogadgets.Message{
 		UUID:      gogadgets.GetUUID(),
 		Sender:    "tun volume",
 		Location:  "tun",
@@ -159,21 +163,24 @@ func (t *Tun) sendUpdate() {
 			Direction: "input",
 		},
 	}
+	t.out <- msg
 }
 
-func (t *Tun) getNewVolumes(startVolumes map[string]float64) {
-	t.lock.Lock()
+func (t *Tun) getNewVolume(startVolumes map[string]float64, i int) {
 	v := t.newVolume(startVolumes["hlt"], t.timer.Since().Seconds())
+	t.lock.Lock()
 	t.volumes["tun"] = startVolumes["tun"] + v
+	if i%10 == 0 {
+		t.sendUpdate()
+	}
 	t.lock.Unlock()
-	t.sendUpdate()
 }
 
 func (t *Tun) newVolume(startVolume, elapsedTime float64) float64 {
-	height := startVolume / t.tunArea
+	height := startVolume / t.hltArea
 	dh := math.Abs(math.Pow((elapsedTime/t.k), 2) - (2 * (elapsedTime / t.k) * math.Pow(height, 0.5)))
 	if math.IsNaN(dh) {
 		dh = 0.0
 	}
-	return (t.tunArea * dh) / 1000.0
+	return (t.hltArea * dh) / 1000.0
 }
