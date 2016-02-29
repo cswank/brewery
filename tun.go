@@ -183,5 +183,5 @@ func (t *Tun) newVolume(startVolume, elapsedTime float64) float64 {
 	if math.IsNaN(dh) {
 		dh = 0.0
 	}
-	return (t.hltArea * dh) / 1000.0
+	return t.hltArea * dh
 }
