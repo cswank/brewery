@@ -1,7 +1,6 @@
 package brewery
 
 import (
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -10,7 +9,9 @@ import (
 )
 
 const (
-	TOGALLONS = 0.264172
+	//volume is tracked internally in mL.
+	GALLONS_TO_ML = 3785.41
+	ML_TO_GALLONS = 1.0 / GALLONS_TO_ML
 )
 
 var (
@@ -67,7 +68,6 @@ func getK(c *TunConfig) (float64, float64) {
 
 func NewTun(cfg *TunConfig) (*Tun, error) {
 	k, hltArea := getK(cfg)
-	fmt.Println("tun cfg", cfg, k, hltArea)
 	if cfg.After == nil {
 		cfg.After = time.After
 	}
@@ -114,7 +114,8 @@ func (t *Tun) readMessage(msg gogadgets.Message) {
 		t.stop <- true
 	} else if msg.Type == "update" && msg.Sender == "hlt volume" {
 		t.lock.Lock()
-		t.volumes["hlt"] = msg.Value.Value.(float64) * (1.0 / TOGALLONS)
+		//convert to mL
+		t.volumes["hlt"] = msg.Value.Value.(float64) * GALLONS_TO_ML
 		t.lock.Unlock()
 	} else if msg.Type == "update" && msg.Sender == "boiler volume" {
 		t.lock.Lock()
@@ -156,7 +157,7 @@ func (t *Tun) sendUpdate() {
 		Type:      "update",
 		Timestamp: time.Now().UTC(),
 		Value: gogadgets.Value{
-			Value: t.volumes["tun"] * TOGALLONS,
+			Value: t.volumes["tun"] * ML_TO_GALLONS,
 			Units: "gallons",
 		},
 		Info: gogadgets.Info{
