@@ -1,11 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
-	"encoding/json"
 
-	"bitbucket.org/cswank/brewery/recipes"
+	"github.com/cswank/brewery/recipes"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 

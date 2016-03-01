@@ -48,6 +48,7 @@ type Tun struct {
 	after     Afterer
 	filling   bool
 	timer     Timer
+	target    float64
 }
 
 type TunConfig struct {
@@ -109,12 +110,11 @@ func (t *Tun) readMessage(msg gogadgets.Message) {
 	if msg.Type == "command" && msg.Body == "update" {
 		t.sendUpdate()
 	} else if msg.Type == "update" && msg.Sender == "tun valve" && msg.Value.Value == true {
-		go t.fill()
+		go t.fill(msg.TargetValue)
 	} else if msg.Type == "update" && msg.Sender == "tun valve" && msg.Value.Value == false && t.filling {
 		t.stop <- true
 	} else if msg.Type == "update" && msg.Sender == "hlt volume" {
 		t.lock.Lock()
-		//convert to mL
 		t.volumes["hlt"] = msg.Value.Value.(float64) * GALLONS_TO_ML
 		t.lock.Unlock()
 	} else if msg.Type == "update" && msg.Sender == "boiler volume" {
@@ -125,8 +125,11 @@ func (t *Tun) readMessage(msg gogadgets.Message) {
 	}
 }
 
-func (t *Tun) fill() {
+func (t *Tun) fill(val *gogadgets.Value) {
 	t.filling = true
+	if val != nil {
+		t.target = val.Value.(float64)
+	}
 	t.lock.Lock()
 	v := map[string]float64{
 		"tun": t.volumes["tun"],
@@ -139,9 +142,10 @@ func (t *Tun) fill() {
 		select {
 		case <-t.stop:
 			t.filling = false
+			t.target = 0.0
 			t.getNewVolume(v, 0)
 			return
-		case <-t.after(100 * time.Millisecond):
+		case <-t.after(time.Second):
 			t.getNewVolume(v, i)
 			i++
 		}
@@ -171,10 +175,18 @@ func (t *Tun) getNewVolume(startVolumes map[string]float64, i int) {
 	v := t.newVolume(startVolumes["hlt"], t.timer.Since().Seconds())
 	t.lock.Lock()
 	t.volumes["tun"] = startVolumes["tun"] + v
-	if i%10 == 0 {
-		t.sendUpdate()
-	}
+	//if i%10 == 0 {
+	t.sendUpdate()
+	//}
 	t.lock.Unlock()
+}
+
+func (t *Tun) getTime(volume, startVolume float64) time.Duration {
+	h := startVolume / t.hltArea
+	dh := volume / t.hltArea
+	k2 := t.k * t.k
+	x := (math.Pow(h, 0.5) * t.k) - math.Pow((dh*k2)+h*k2, 0.5)
+	return time.Duration(x) * time.Second
 }
 
 func (t *Tun) newVolume(startVolume, elapsedTime float64) float64 {

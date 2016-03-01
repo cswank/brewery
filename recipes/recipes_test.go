@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"bitbucket.org/cswank/brewery/recipes"
+	"github.com/cswank/brewery/recipes"
 )
 
 func TestExample(t *testing.T) {

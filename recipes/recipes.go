@@ -154,7 +154,7 @@ func (r *Recipe) GetMethod(grainTemperature float64) []string {
 		"wait for 10 minutes",
 		"wait for user ready to recirculate",
 		"fill boiler",
-		"wait for user recirculated",
+		"wait for user to finish recirculating",
 		fmt.Sprintf("fill boiler to %f %s", mash.SpargeVolume, volumeUnits),
 		fmt.Sprintf("heat boiler to 190 %s", temperatureUnits),
 		fmt.Sprintf("wait for boiler volume >= %f %s", mash.SpargeVolume, volumeUnits),
@@ -164,7 +164,7 @@ func (r *Recipe) GetMethod(grainTemperature float64) []string {
 		"wait for 2 minutes",
 		"wait for user ready to recirculate",
 		"fill boiler",
-		"wait for user recirculated",
+		"wait for user to finish recirculating",
 		fmt.Sprintf("fill boiler to %f %s", mash.SecondSpargeVolume+mash.SpargeVolume, volumeUnits),
 		fmt.Sprintf("heat boiler to 204 %s", temperatureUnits),
 		"turn on fan",
@@ -175,8 +175,8 @@ func (r *Recipe) GetMethod(grainTemperature float64) []string {
 		"cool boiler to 80 F",
 		"wait for boiler temperature <= 80 F",
 		"wait for user to open ball valve",
-		"fill fermenter",
+		"fill carboy",
 		"wait for user to confirm boiler empty",
-		"stop filling fermenter",
+		"stop filling carboy",
 	}
 }

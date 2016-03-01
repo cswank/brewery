@@ -54,10 +54,9 @@ var _ = Describe("HLT Volume", func() {
 		timer = &fakeTimer{}
 
 		cfg := &brewery.TunConfig{
-			TunRadius:      10.0,
+			HLTRadius:      10.0,
 			TunValveRadius: 0.25,
 			Coefficient:    0.4,
-			HLTCapacity:    7.0,
 			After:          after.After,
 			Timer:          timer,
 		}
@@ -91,11 +90,11 @@ var _ = Describe("HLT Volume", func() {
 
 		trigger <- true
 		msg := <-in
-		Expect(msg.Value.Value.(float64)).To(Equal(0.0002643074825383171))
+		Expect(msg.Value.Value.(float64)).To(Equal(0.008436018793712464))
 
 		trigger <- true
 		msg = <-in
-		Expect(msg.Value.Value.(float64)).To(Equal(0.0005235285878848647))
+		Expect(msg.Value.Value.(float64)).To(Equal(0.016866951206827928))
 
 		out <- gogadgets.Message{
 			Type:   "update",
@@ -106,7 +105,7 @@ var _ = Describe("HLT Volume", func() {
 		}
 
 		msg = <-in
-		Expect(msg.Value.Value.(float64)).To(Equal(0.0007776633160396426))
+		Expect(msg.Value.Value.(float64)).To(Equal(0.025292797239346396))
 
 		out <- gogadgets.Message{
 			Type:   "update",
