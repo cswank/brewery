@@ -39,14 +39,7 @@ func checkW1() {
 }
 
 func getApp(cfg interface{}, brewCfg *brewery.BrewConfig) (*gogadgets.App, error) {
-	a := gogadgets.NewApp(cfg)
-
 	hlt, tun, boiler, carboy := brewery.NewBrewery(brewCfg)
-
-	a.AddGadget(hlt)
-	a.AddGadget(tun)
-	a.AddGadget(boiler)
-	a.AddGadget(carboy)
-
+	a := gogadgets.NewApp(cfg, hlt, tun, boiler, carboy)
 	return a, nil
 }
