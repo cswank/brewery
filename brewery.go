@@ -71,9 +71,9 @@ func getPoller(cfg *BrewConfig) gogadgets.Poller {
 		Edge:      "rising",
 	}
 
-	gpio, err := gogadgets.NewGPIO(pin)
+	g, err := gogadgets.NewGPIO(pin)
 	if err != nil {
 		panic(err)
 	}
-	return gpio.(gogadgets.Poller)
+	return g
 }
