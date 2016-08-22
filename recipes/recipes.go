@@ -73,7 +73,7 @@ func NewRecipe(name string) (*Recipe, error) {
 		return nil, err
 	}
 	r.WaterRatio = 1.25
-	r.strikeFactor = 0.1924 //last time, using 0.2, my target was 152 but the grains ended up at 158.  I scaled the 0.2 down to try to get it closer
+	r.strikeFactor = 0.2
 	return &r, err
 }
 
