@@ -3,7 +3,6 @@ package recipes
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -62,19 +61,15 @@ func NewRecipe(name string) (*Recipe, error) {
 		return nil, err
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	if err != nil {
-		return nil, err
+	defer res.Body.Close()
+
+	r := &Recipe{
+		WaterRatio:   1.25,
+		strikeFactor: 0.2,
 	}
-	var r Recipe
-	err = json.Unmarshal(body, &r)
-	if err != nil {
-		return nil, err
-	}
-	r.WaterRatio = 1.25
-	r.strikeFactor = 0.2
-	return &r, err
+
+	dec := json.NewDecoder(res.Body)
+	return r, dec.Decode(r)
 }
 
 func (r *Recipe) getMash(grainTemperature float64) *Mash {
