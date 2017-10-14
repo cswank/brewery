@@ -7,6 +7,10 @@ import (
 	"github.com/cswank/gogadgets"
 )
 
+var (
+	vol *volumeManager
+)
+
 type BrewConfig struct {
 	HLTRadius       float64
 	TunValveRadius  float64

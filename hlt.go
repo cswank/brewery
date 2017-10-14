@@ -7,7 +7,6 @@ import (
 )
 
 type HLT struct {
-	volumes  map[string]float64
 	capacity float64
 	isFull   chan bool
 	poller   gogadgets.Poller
@@ -21,10 +20,6 @@ type HLTConfig struct {
 
 func NewHLT(cfg *HLTConfig) (*HLT, error) {
 	return &HLT{
-		volumes: map[string]float64{
-			"tun": 0.0,
-			"hlt": 0.0,
-		},
 		isFull:   make(chan bool),
 		capacity: cfg.HLTCapacity,
 		poller:   cfg.Poller,
@@ -58,18 +53,6 @@ func (h *HLT) readMessage(msg gogadgets.Message) {
 		h.sendUpdate()
 	} else if msg.Type == "update" && msg.Sender == "hlt valve" && msg.Value.Value == true {
 		go h.waitForFloatSwitch()
-	} else if msg.Type == "update" && msg.Sender == "tun volume" {
-		h.readTunVolume(msg)
-	}
-}
-
-func (h *HLT) readTunVolume(msg gogadgets.Message) {
-	v := msg.Value.Value.(float64)
-	diff := v - h.volumes["tun"]
-	h.volumes["tun"] = v
-	if diff > 0.0 {
-		h.volumes["hlt"] -= diff
-		h.sendUpdate()
 	}
 }
 
@@ -82,7 +65,7 @@ func (h *HLT) sendUpdate() {
 		Type:      "update",
 		Timestamp: time.Now().UTC(),
 		Value: gogadgets.Value{
-			Value: h.volumes["hlt"],
+			Value: vol.get("hlt"),
 			Units: "gallons",
 		},
 		Info: gogadgets.Info{
@@ -100,6 +83,6 @@ func (h *HLT) updateVolume(full bool) {
 	if !full {
 		return
 	}
-	h.volumes["hlt"] = h.capacity
-	h.sendUpdate()
+	//h.volumes["hlt"] = h.capacity
+	//h.sendUpdate()
 }
