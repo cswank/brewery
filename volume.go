@@ -36,52 +36,65 @@ func (t *timer) Since() time.Duration {
 type volumeManager struct {
 	lock      sync.Mutex
 	volumes   map[string]float64
+	updates   map[string]func(float64)
 	hltArea   float64
 	stop      chan bool
 	k         float64
 	listening bool
 
-	after   Afterer
-	filling bool
-	timer   Timer
-	target  float64
+	hltCapacity float64
+
+	after             Afterer
+	fillingTun        bool
+	fillingBoiler     bool
+	boilerFillTime    time.Duration
+	stopFillingBoiler chan bool
+	stopFillingTun    chan bool
+	timer             Timer
+	target            float64
+	poller            gogadgets.Poller
 }
 
-type volumeConfig struct {
-	HLTRadius      float64
-	TunValveRadius float64
-	Coefficient    float64
-	After          Afterer
-	Timer          Timer
-}
-
-func (v *volumeConfig) getK() (float64, float64) {
-	hltArea := math.Pi * math.Pow(v.HLTRadius, 2)
-	valveArea := math.Pi * math.Pow(v.TunValveRadius, 2)
-	g := 9.806 * 100.0 //centimeters
-	x := math.Pow((2.0 / g), 0.5)
-	return (hltArea * x) / (valveArea * v.Coefficient), hltArea
-}
-
-func newVolumeManager(cfg *volumeConfig) (*volumeManager, error) {
+func newVolumeManager(cfg *Config, opts ...func(*volumeManager)) (*volumeManager, error) {
 	k, hltArea := cfg.getK()
-	if cfg.After == nil {
-		cfg.After = time.After
-	}
-	if cfg.Timer == nil {
-		cfg.Timer = &timer{}
-	}
-	return &volumeManager{
+
+	v := &volumeManager{
 		volumes: map[string]float64{
 			"hlt": 0.0,
 			"tun": 0.0,
 		},
-		stop:    make(chan bool),
-		hltArea: hltArea,
-		k:       k,
-		after:   cfg.After,
-		timer:   cfg.Timer,
-	}, nil
+		updates:           map[string]func(float64){},
+		stop:              make(chan bool),
+		hltArea:           hltArea,
+		k:                 k,
+		boilerFillTime:    time.Duration(cfg.BoilerFillTime) * time.Second,
+		stopFillingBoiler: make(chan bool),
+		stopFillingTun:    make(chan bool),
+		hltCapacity:       cfg.HLTCapacity,
+	}
+
+	for _, opt := range opts {
+		opt(v)
+
+	}
+
+	if v.after == nil {
+		v.after = time.After
+	}
+
+	if v.timer == nil {
+		v.timer = &timer{}
+	}
+
+	if v.poller == nil {
+		var err error
+		v.poller, err = newPoller(cfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return v, nil
 }
 
 func (v *volumeManager) get(k string) float64 {
@@ -91,26 +104,73 @@ func (v *volumeManager) get(k string) float64 {
 	return x * mlToGallons
 }
 
+func (v *volumeManager) set(k string, val float64) {
+	v.lock.Lock()
+	v.volumes[k] = val * gallonsToML
+	v.lock.Unlock()
+}
+
 func (v *volumeManager) readMessage(msg gogadgets.Message) {
 	if msg.Type == "update" && msg.Sender == "tun valve" && msg.Value.Value == true {
-		go v.fill(msg.TargetValue)
-	} else if msg.Type == "update" && msg.Sender == "tun valve" && msg.Value.Value == false && v.filling {
-		v.stop <- true
-	} else if msg.Type == "update" && msg.Sender == "hlt volume" {
-		v.lock.Lock()
-		v.volumes["hlt"] = msg.Value.Value.(float64) * gallonsToML
-		v.lock.Unlock()
-	} else if msg.Type == "update" && msg.Sender == "boiler volume" {
-		v.lock.Lock()
-		vol := v.volumes["tun"]
-		v.volumes["tun"] = 0.0
-		v.volumes["boiler"] = vol
-		v.lock.Unlock()
+		go v.fillTun(msg.TargetValue)
+	} else if msg.Type == "update" && msg.Sender == "tun valve" && msg.Value.Value == false && v.fillingTun {
+		v.stopFillingTun <- true
+	} else if msg.Type == "update" && msg.Sender == "boiler valve" && msg.Value.Value == true {
+		go v.fillBoiler()
+	} else if msg.Type == "update" && msg.Sender == "boiler valve" && msg.Value.Value == false && v.fillingBoiler {
+		v.stopFillingBoiler <- true
+	} else if msg.Type == "update" && msg.Sender == "hlt valve" && msg.Value.Value == true {
+		go v.waitForFloatSwitch()
+	} else if msg.Type == "update" && msg.Sender == "carboy pump" && msg.Value.Value == false {
+		b := v.volumes["boiler"]
+		v.volumes["carboy"] = b
+		v.volumes["boiler"] = 0.0
+		v.updates["carboy"](b)
+		v.updates["boiler"](0.0)
 	}
 }
 
-func (v *volumeManager) fill(val *gogadgets.Value) {
-	v.filling = true
+//The rate that water flows from the mash into the boiler isn't
+//known, so wait for a safe amount of time and assume all water
+//in the mash is now in the boiler.
+func (v *volumeManager) fillBoiler() {
+	v.fillingBoiler = true
+	for v.fillingBoiler {
+		select {
+		case <-v.stopFillingBoiler:
+			v.fillingBoiler = false
+		case <-time.After(v.boilerFillTime):
+			v.fillingBoiler = false
+			v.lock.Lock()
+			t := v.volumes["tun"]
+			v.volumes["boiler"] = t
+			v.volumes["tun"] = 0.0
+			v.lock.Unlock()
+			v.updates["boiler"](t)
+			v.updates["tun"](0.0)
+
+		}
+	}
+}
+
+func (v *volumeManager) waitForFloatSwitch() {
+	b, _ := v.poller.Wait()
+	if !b {
+		return
+	}
+
+	v.lock.Lock()
+	v.volumes["hlt"] = v.hltCapacity
+	v.lock.Unlock()
+	v.updates["hlt"](v.hltCapacity)
+}
+
+func (v *volumeManager) register(k string, f func(float64)) {
+	v.updates[k] = f
+}
+
+func (v *volumeManager) fillTun(val *gogadgets.Value) {
+	v.fillingTun = true
 	if val != nil {
 		v.target = val.Value.(float64)
 	}
@@ -124,8 +184,8 @@ func (v *volumeManager) fill(val *gogadgets.Value) {
 	var i int
 	for {
 		select {
-		case <-v.stop:
-			v.filling = false
+		case <-v.stopFillingTun:
+			v.fillingTun = false
 			v.target = 0.0
 			v.getNewVolume(m, 0)
 			return
@@ -138,10 +198,14 @@ func (v *volumeManager) fill(val *gogadgets.Value) {
 
 func (v *volumeManager) getNewVolume(startVolumes map[string]float64, i int) {
 	vol := v.newVolume(startVolumes["hlt"], v.timer.Since().Seconds())
+	t := startVolumes["tun"] + vol
+	h := startVolumes["hlt"] - vol
 	v.lock.Lock()
-	v.volumes["tun"] = startVolumes["tun"] + vol
-	v.volumes["hlt"] = startVolumes["hlt"] - vol
+	v.volumes["hlt"] = h
+	v.volumes["tun"] = t
 	v.lock.Unlock()
+	v.updates["hlt"](h)
+	v.updates["tun"](t)
 }
 
 func (v *volumeManager) getTime(volume, startVolume float64) time.Duration {
@@ -159,4 +223,17 @@ func (v *volumeManager) newVolume(startVolume, elapsedTime float64) float64 {
 		dh = 0.0
 	}
 	return v.hltArea * dh
+}
+
+//gpio for the float switch at the top of my hlt.  When
+//it is triggered I know how much water is in the container.
+func newPoller(cfg *Config) (gogadgets.Poller, error) {
+	pin := &gogadgets.Pin{
+		Port:      cfg.FloatSwitchPort,
+		Pin:       cfg.FloatSwitchPin,
+		Direction: "in",
+		Edge:      "rising",
+	}
+
+	return gogadgets.NewGPIO(pin)
 }
