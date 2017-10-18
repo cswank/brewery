@@ -1,8 +1,6 @@
 package brewery
 
 import (
-	"math"
-
 	"github.com/cswank/gogadgets"
 )
 
@@ -11,21 +9,15 @@ var (
 )
 
 type Config struct {
-	HLTRadius       float64
-	TunValveRadius  float64
-	HLTCoefficient  float64
+	//A and B are the slope of the calibration table
+	//as in y = a + bx
+	//where y = time(s) and x = volume(mL)
+	A               float64
+	B               float64
 	HLTCapacity     float64
 	BoilerFillTime  int //time to drain the mash in seconds
 	FloatSwitchPin  string
 	FloatSwitchPort string
-}
-
-func (b *Config) getK() (float64, float64) {
-	hltArea := math.Pi * math.Pow(b.HLTRadius, 2)
-	valveArea := math.Pi * math.Pow(b.TunValveRadius, 2)
-	g := 9.806 * 100.0 //centimeters
-	x := math.Pow((2.0 / g), 0.5)
-	return (hltArea * x) / (valveArea * b.HLTCoefficient), hltArea
 }
 
 func New(cfg *Config, opts ...func(*volumeManager)) (*Tank, *Tank, *Tank, *Tank, error) {

@@ -1,7 +1,7 @@
 package brewery
 
 import (
-	"math"
+	"log"
 	"sync"
 	"time"
 
@@ -33,13 +33,17 @@ func (t *timer) Since() time.Duration {
 	return time.Now().Sub(t.start)
 }
 
+type line struct {
+	a, b float64
+}
+
 type volumeManager struct {
-	lock      sync.Mutex
-	volumes   map[string]float64
-	updates   map[string]func(float64)
-	hltArea   float64
-	stop      chan bool
-	k         float64
+	lock    sync.Mutex
+	volumes map[string]float64
+	updates map[string]func(float64)
+	stop    chan bool
+
+	line      line
 	listening bool
 
 	hltCapacity float64
@@ -56,8 +60,6 @@ type volumeManager struct {
 }
 
 func newVolumeManager(cfg *Config, opts ...func(*volumeManager)) (*volumeManager, error) {
-	k, hltArea := cfg.getK()
-
 	v := &volumeManager{
 		volumes: map[string]float64{
 			"hlt": 0.0,
@@ -65,8 +67,7 @@ func newVolumeManager(cfg *Config, opts ...func(*volumeManager)) (*volumeManager
 		},
 		updates:           map[string]func(float64){},
 		stop:              make(chan bool),
-		hltArea:           hltArea,
-		k:                 k,
+		line:              line{a: cfg.A, b: cfg.B},
 		boilerFillTime:    time.Duration(cfg.BoilerFillTime) * time.Second,
 		stopFillingBoiler: make(chan bool),
 		stopFillingTun:    make(chan bool),
@@ -154,13 +155,14 @@ func (v *volumeManager) fillBoiler() {
 }
 
 func (v *volumeManager) waitForFloatSwitch() {
-	b, _ := v.poller.Wait()
-	if !b {
+	err := v.poller.Wait()
+	if err != nil {
+		log.Println("gpio Wait() error", err)
 		return
 	}
 
 	v.lock.Lock()
-	v.volumes["hlt"] = v.hltCapacity
+	v.volumes["hlt"] = v.hltCapacity * gallonsToML
 	v.lock.Unlock()
 	v.updates["hlt"](v.hltCapacity)
 }
@@ -197,32 +199,20 @@ func (v *volumeManager) fillTun(val *gogadgets.Value) {
 }
 
 func (v *volumeManager) getNewVolume(startVolumes map[string]float64, i int) {
-	vol := v.newVolume(startVolumes["hlt"], v.timer.Since().Seconds())
+	//amount that has come out since starting
+	vol := v.newVolume(v.timer.Since().Seconds())
 	t := startVolumes["tun"] + vol
 	h := startVolumes["hlt"] - vol
 	v.lock.Lock()
 	v.volumes["hlt"] = h
 	v.volumes["tun"] = t
 	v.lock.Unlock()
-	v.updates["hlt"](h)
-	v.updates["tun"](t)
+	v.updates["hlt"](v.get("hlt"))
+	v.updates["tun"](v.get("tun"))
 }
 
-func (v *volumeManager) getTime(volume, startVolume float64) time.Duration {
-	h := startVolume / v.hltArea
-	dh := volume / v.hltArea
-	k2 := v.k * v.k
-	x := (math.Pow(h, 0.5) * v.k) - math.Pow((dh*k2)+h*k2, 0.5)
-	return time.Duration(x) * time.Second
-}
-
-func (v *volumeManager) newVolume(startVolume, elapsedTime float64) float64 {
-	height := startVolume / v.hltArea
-	dh := math.Abs(math.Pow((elapsedTime/v.k), 2) - (2 * (elapsedTime / v.k) * math.Pow(height, 0.5)))
-	if math.IsNaN(dh) {
-		dh = 0.0
-	}
-	return v.hltArea * dh
+func (v *volumeManager) newVolume(elapsedTime float64) float64 {
+	return v.line.a + (v.line.b * elapsedTime)
 }
 
 //gpio for the float switch at the top of my hlt.  When
