@@ -126,7 +126,7 @@ func (v *volumeManager) readMessage(msg gogadgets.Message) {
 		b := v.volumes["boiler"]
 		v.volumes["carboy"] = b
 		v.volumes["boiler"] = 0.0
-		v.updates["carboy"](b)
+		v.updates["carboy"](v.get("carboy"))
 		v.updates["boiler"](0.0)
 	}
 }
@@ -147,9 +147,8 @@ func (v *volumeManager) fillBoiler() {
 			v.volumes["boiler"] = t
 			v.volumes["tun"] = 0.0
 			v.lock.Unlock()
-			v.updates["boiler"](t)
+			v.updates["boiler"](v.get("boiler"))
 			v.updates["tun"](0.0)
-
 		}
 	}
 }
