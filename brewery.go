@@ -10,7 +10,8 @@ var (
 
 type Config struct {
 	//A and B are the slope of the calibration table
-	//as in y = a + bx
+	//for water flowing out of the hlt into the mash
+	//tun, as in y = a + bx
 	//where y = time(s) and x = volume(mL)
 	A               float64
 	B               float64
