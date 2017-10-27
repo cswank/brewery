@@ -12,11 +12,13 @@ type Config struct {
 	//A and B are the slope of the calibration table
 	//for water flowing out of the hlt into the mash
 	//tun, as in y = a + bx
-	//where y = time(s) and x = volume(mL)
-	A               float64
-	B               float64
-	HLTCapacity     float64
-	BoilerFillTime  int //time to drain the mash in seconds
+	//where y = time (s) and x = volume (mL)
+	A           float64
+	B           float64
+	HLTCapacity float64
+
+	//BoilerFIllTime is the time to drain the mash in seconds
+	BoilerFillTime  int
 	FloatSwitchPin  string
 	FloatSwitchPort string
 }
@@ -28,11 +30,7 @@ func New(cfg *Config, opts ...func(*volumeManager)) (*Tank, *Tank, *Tank, *Tank,
 		return nil, nil, nil, nil, err
 	}
 
-	hlt := NewTank("hlt", masterTank)
-	tun := NewTank("tun")
-	boiler := NewTank("boiler")
-	carboy := NewTank("carboy")
-	return hlt, tun, boiler, carboy, nil
+	return NewTank("hlt", masterTank), NewTank("tun"), NewTank("boiler"), NewTank("carboy"), nil
 }
 
 func WithAfter(a Afterer) func(*volumeManager) {

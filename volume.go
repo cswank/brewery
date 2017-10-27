@@ -38,10 +38,11 @@ type line struct {
 }
 
 type volumeManager struct {
-	lock    sync.Mutex
-	volumes map[string]float64
-	updates map[string]func(float64)
-	stop    chan bool
+	lock       sync.Mutex
+	updateLock sync.Mutex
+	volumes    map[string]float64
+	updates    map[string]func(float64)
+	stop       chan bool
 
 	line      line
 	listening bool
@@ -55,7 +56,6 @@ type volumeManager struct {
 	stopFillingBoiler chan bool
 	stopFillingTun    chan bool
 	timer             Timer
-	target            float64
 	poller            gogadgets.Poller
 }
 
@@ -99,21 +99,21 @@ func newVolumeManager(cfg *Config, opts ...func(*volumeManager)) (*volumeManager
 }
 
 func (v *volumeManager) get(k string) float64 {
-	v.lock.Lock()
+	v.updateLock.Lock()
 	x := v.volumes[k]
-	v.lock.Unlock()
+	v.updateLock.Unlock()
 	return x * mlToGallons
 }
 
 func (v *volumeManager) set(k string, val float64) {
-	v.lock.Lock()
+	v.updateLock.Lock()
 	v.volumes[k] = val * gallonsToML
-	v.lock.Unlock()
+	v.updateLock.Unlock()
 }
 
 func (v *volumeManager) readMessage(msg gogadgets.Message) {
 	if msg.Type == "update" && msg.Sender == "tun valve" && msg.Value.Value == true {
-		go v.fillTun(msg.TargetValue)
+		go v.fillTun()
 	} else if msg.Type == "update" && msg.Sender == "tun valve" && msg.Value.Value == false && v.fillingTun {
 		v.stopFillingTun <- true
 	} else if msg.Type == "update" && msg.Sender == "boiler valve" && msg.Value.Value == true {
@@ -170,11 +170,8 @@ func (v *volumeManager) register(k string, f func(float64)) {
 	v.updates[k] = f
 }
 
-func (v *volumeManager) fillTun(val *gogadgets.Value) {
+func (v *volumeManager) fillTun() {
 	v.fillingTun = true
-	if val != nil {
-		v.target = val.Value.(float64)
-	}
 	v.lock.Lock()
 	m := map[string]float64{
 		"tun": v.volumes["tun"],
@@ -182,29 +179,23 @@ func (v *volumeManager) fillTun(val *gogadgets.Value) {
 	}
 	v.lock.Unlock()
 	v.timer.Start()
-	var i int
 	for {
 		select {
 		case <-v.stopFillingTun:
 			v.fillingTun = false
-			v.target = 0.0
-			v.getNewVolume(m, 0)
+			v.getNewVolume(m)
 			return
 		case <-v.after(time.Second):
-			v.getNewVolume(m, i)
-			i++
+			v.getNewVolume(m)
 		}
 	}
 }
 
-func (v *volumeManager) getNewVolume(startVolumes map[string]float64, i int) {
-	//amount that has come out since starting
+func (v *volumeManager) getNewVolume(startVolumes map[string]float64) {
 	vol := v.newVolume(v.timer.Since().Seconds())
-	t := startVolumes["tun"] + vol
-	h := startVolumes["hlt"] - vol
 	v.lock.Lock()
-	v.volumes["hlt"] = h
-	v.volumes["tun"] = t
+	v.volumes["hlt"] = startVolumes["hlt"] - vol
+	v.volumes["tun"] = startVolumes["tun"] + vol
 	v.lock.Unlock()
 	v.updates["hlt"](v.get("hlt"))
 	v.updates["tun"](v.get("tun"))
@@ -218,8 +209,8 @@ func (v *volumeManager) newVolume(elapsedTime float64) float64 {
 //it is triggered I know how much water is in the container.
 func newPoller(cfg *Config) (gogadgets.Poller, error) {
 	pin := &gogadgets.Pin{
-		Port:      cfg.FloatSwitchPort,
 		Pin:       cfg.FloatSwitchPin,
+		Platform:  "rpi",
 		Direction: "in",
 		Edge:      "rising",
 	}

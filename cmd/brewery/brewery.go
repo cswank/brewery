@@ -22,7 +22,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	checkW1()
+	//checkW1()
 	a, err := getApp(*cfg, &brewCfg)
 	if err != nil {
 		panic(err)
