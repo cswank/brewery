@@ -8,13 +8,15 @@ var (
 	vol *volumeManager
 )
 
+// Config holds brewery env vars
 type Config struct {
-	//A and B are the slope of the calibration table
+	//A, B and C are the coeffcients of a polynomial curve
 	//for water flowing out of the hlt into the mash
-	//tun, as in y = a + bx
-	//where y = time (s) and x = volume (mL)
+	//tun, as in y = a + bx + cx^2
+	//where x = time (s) and y = vol (ml)
 	A           float64
 	B           float64
+	C           float64
 	HLTCapacity float64
 
 	//BoilerFIllTime is the time to drain the mash in seconds

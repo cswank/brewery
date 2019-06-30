@@ -33,8 +33,8 @@ func (t *timer) Since() time.Duration {
 	return time.Now().Sub(t.start)
 }
 
-type line struct {
-	a, b float64
+type fit struct {
+	a, b, c float64
 }
 
 type volumeManager struct {
@@ -44,7 +44,7 @@ type volumeManager struct {
 	updates    map[string]func(float64)
 	stop       chan bool
 
-	line      line
+	fit       fit
 	listening bool
 
 	hltCapacity float64
@@ -67,7 +67,7 @@ func newVolumeManager(cfg *Config, opts ...func(*volumeManager)) (*volumeManager
 		},
 		updates:           map[string]func(float64){},
 		stop:              make(chan bool),
-		line:              line{a: cfg.A, b: cfg.B},
+		fit:               fit{a: cfg.A, b: cfg.B, c: cfg.C},
 		boilerFillTime:    time.Duration(cfg.BoilerFillTime) * time.Second,
 		stopFillingBoiler: make(chan bool),
 		stopFillingTun:    make(chan bool),
@@ -202,7 +202,7 @@ func (v *volumeManager) getNewVolume(startVolumes map[string]float64) {
 }
 
 func (v *volumeManager) newVolume(elapsedTime float64) float64 {
-	return v.line.a + (v.line.b * elapsedTime)
+	return v.fit.a + (v.fit.b * elapsedTime) + (v.fit.c * elapsedTime * elapsedTime)
 }
 
 //gpio for the float switch at the top of my hlt.  When
@@ -215,5 +215,9 @@ func newPoller(cfg *Config) (gogadgets.Poller, error) {
 		Edge:      "rising",
 	}
 
-	return gogadgets.NewGPIO(pin)
+	g, err := gogadgets.NewGPIO(pin)
+	if err != nil {
+		return nil, err
+	}
+	return g.(*gogadgets.GPIO), nil
 }
