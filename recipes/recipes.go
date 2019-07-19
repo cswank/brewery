@@ -3,7 +3,7 @@ package recipes
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"os"
 )
 
 type Fermentable struct {
@@ -54,21 +54,20 @@ type Mash struct {
 	SecondSpargeVolume float64
 }
 
-func NewRecipe(name string) (*Recipe, error) {
-	recipeUrl := fmt.Sprintf("http://www.brewtoad.com/recipes/%s.json", name)
-	res, err := http.Get(recipeUrl)
+func NewRecipe(pth string) (*Recipe, error) {
+	f, err := os.Open(pth)
 	if err != nil {
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer f.Close()
 
 	r := &Recipe{
 		WaterRatio:   1.25,
 		strikeFactor: 0.2,
 	}
 
-	dec := json.NewDecoder(res.Body)
+	dec := json.NewDecoder(f)
 	return r, dec.Decode(r)
 }
 

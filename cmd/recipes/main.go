@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -10,17 +9,18 @@ import (
 )
 
 var (
-	name = kingpin.Flag("name", "the name of the brewtoad recipe").Short('n').String()
+	pth  = kingpin.Arg("input", "path to the recipe json file").Required().String()
 	temp = kingpin.Flag("temperature", "the temperature of the grains (F)").Short('t').Float()
 )
 
 func main() {
 	kingpin.Parse()
-	r, err := recipes.NewRecipe(*name)
+	r, err := recipes.NewRecipe(*pth)
 	if err != nil {
 		log.Fatal(err)
 	}
 	m := r.GetMethod(*temp)
-	b, _ := json.MarshalIndent(m, "", "  ")
-	fmt.Println(string(b))
+	for _, row := range m {
+		fmt.Println(row)
+	}
 }
