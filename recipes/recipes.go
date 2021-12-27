@@ -3,7 +3,7 @@ package recipes
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"io"
 )
 
 type Fermentable struct {
@@ -54,32 +54,29 @@ type Mash struct {
 	SecondSpargeVolume float64
 }
 
-func NewRecipe(pth string) (*Recipe, error) {
-	f, err := os.Open(pth)
-	if err != nil {
-		return nil, err
-	}
-
-	defer f.Close()
-
-	r := &Recipe{
+func New(r io.Reader, opts ...recipieOption) (*Recipe, error) {
+	out := &Recipe{
 		WaterRatio:   1.25,
 		strikeFactor: 0.2,
 	}
 
-	dec := json.NewDecoder(f)
-	return r, dec.Decode(r)
+	for _, opt := range opts {
+		opt(out)
+	}
+
+	dec := json.NewDecoder(r)
+	return out, dec.Decode(out)
 }
 
 func (r *Recipe) getMash(grainTemperature float64) *Mash {
 	grainWeight := r.getGrainWeight()
-	mashVolume := r.getMashVolume(grainWeight)
+	mashVolume := r.mashVolume(grainWeight)
 	return &Mash{
-		StrikeTemperature:  r.getStrikeTemperature(grainTemperature),
+		StrikeTemperature:  r.strikeTemperature(grainTemperature),
 		Volume:             mashVolume,
-		SpargeVolume:       r.getSpargeVolume(mashVolume, grainWeight),
+		SpargeVolume:       r.spargeVolume(mashVolume, grainWeight),
 		SecondSpargeVolume: r.BoilSize / 2.0,
-		Time:               r.getMashTime(),
+		Time:               r.mashTime(),
 	}
 }
 
@@ -91,7 +88,7 @@ func (r *Recipe) getGrainWeight() float64 {
 	return weight
 }
 
-func (r *Recipe) getTargetTemperature() (t float64) {
+func (r *Recipe) targetTemperature() (t float64) {
 	if len(r.MashSteps) > 0 {
 		t = r.MashSteps[0].Temperature
 	} else {
@@ -100,7 +97,7 @@ func (r *Recipe) getTargetTemperature() (t float64) {
 	return t
 }
 
-func (r *Recipe) getMashTime() (t float64) {
+func (r *Recipe) mashTime() (t float64) {
 	if len(r.MashSteps) > 0 {
 		t = r.MashSteps[0].Time
 	} else {
@@ -109,21 +106,21 @@ func (r *Recipe) getMashTime() (t float64) {
 	return t
 }
 
-func (r *Recipe) getStrikeTemperature(grainTemperature float64) float64 {
-	targetTemperature := r.getTargetTemperature()
+func (r *Recipe) strikeTemperature(grainTemperature float64) float64 {
+	targetTemperature := r.targetTemperature()
 
 	return (r.strikeFactor/r.WaterRatio)*(targetTemperature-grainTemperature) + targetTemperature
 }
 
-func (r *Recipe) getInfusionVolume(initialTemperature, targetTemperature, volume, grainWeight, waterTemperature, mashTemperature float64) float64 {
+func (r *Recipe) infusionVolume(initialTemperature, targetTemperature, volume, grainWeight, waterTemperature, mashTemperature float64) float64 {
 	return (targetTemperature - initialTemperature) * (0.2*grainWeight + volume) / (waterTemperature - targetTemperature)
 }
 
-func (r *Recipe) getMashVolume(grainWeight float64) float64 {
+func (r *Recipe) mashVolume(grainWeight float64) float64 {
 	return (r.WaterRatio * grainWeight) / 4.0
 }
 
-func (r *Recipe) getSpargeVolume(mashVolume, grainWeight float64) float64 {
+func (r *Recipe) spargeVolume(mashVolume, grainWeight float64) float64 {
 	absorbtion := grainWeight * 0.1
 	targetVolume := r.BoilSize / 2.0
 	drainVolume := mashVolume - absorbtion
@@ -134,7 +131,7 @@ func (r *Recipe) getSpargeVolume(mashVolume, grainWeight float64) float64 {
 	return volume + mashVolume
 }
 
-func (r *Recipe) GetMethod(grainTemperature float64) []string {
+func (r *Recipe) Method(grainTemperature float64) []string {
 	mash := r.getMash(grainTemperature)
 	temperatureUnits := "F"
 	volumeUnits := "gallons"
@@ -176,5 +173,19 @@ func (r *Recipe) GetMethod(grainTemperature float64) []string {
 		"fill carboy",
 		"wait for user to confirm boiler empty",
 		"stop filling carboy",
+	}
+}
+
+type recipieOption func(*Recipe)
+
+func WaterRatio(wr float64) recipieOption {
+	return func(r *Recipe) {
+		r.WaterRatio = wr
+	}
+}
+
+func StrikeFactor(f float64) recipieOption {
+	return func(r *Recipe) {
+		r.strikeFactor = f
 	}
 }

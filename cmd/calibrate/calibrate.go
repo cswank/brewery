@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 
 	"github.com/cswank/gogadgets"
-	"github.com/cswank/gogadgets/utils"
 )
 
 var (
@@ -19,7 +18,7 @@ var (
 
 func main() {
 	flag.Parse()
-	if !utils.FileExists("/sys/bus/w1/devices/28-0000047ade8f") {
+	if !gogadgets.FileExists("/sys/bus/w1/devices/28-0000047ade8f") {
 		ioutil.WriteFile("/sys/devices/bone_capemgr.9/slots", []byte("BB-W1:00A0"), 0666)
 	}
 	b, err := ioutil.ReadFile(*configPath)

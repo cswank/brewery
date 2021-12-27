@@ -43,7 +43,7 @@ func TestExample(t *testing.T) {
 	}
 
 	recipe.WaterRatio = 1.25
-	m := recipe.GetMethod(75.0)
+	m := recipe.Method(75.0)
 	if len(m) != 37 {
 		t.Error(len(m))
 	}
